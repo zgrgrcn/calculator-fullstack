@@ -23,7 +23,9 @@ api() {
     -H "Accept: application/json" "$@"
 }
 
-project_uuid=$(api "${COOLIFY_URL}/api/v1/projects" | jq -r --arg n "${PROJECT_NAME}" '.[] | select(.name == $n) | .uuid')
+# List endpoints may answer a bare array or {data: [...]}; accept both.
+items='if type == "array" then . else .data end | .[]'
+project_uuid=$(api "${COOLIFY_URL}/api/v1/projects" | jq -r --arg n "${PROJECT_NAME}" "${items} | select(.name == \$n) | .uuid")
 if [ -z "${project_uuid}" ]; then
   body=$(jq -n --arg n "${PROJECT_NAME}" '{name: $n, description: "Go + React calculator, senior full-stack take-home. Live demo."}')
   project_uuid=$(api -X POST "${COOLIFY_URL}/api/v1/projects" -d "${body}" | jq -r .uuid)
@@ -32,7 +34,7 @@ else
   echo "project exists: ${project_uuid}"
 fi
 
-app_uuid=$(api "${COOLIFY_URL}/api/v1/applications" | jq -r --arg n "${APP_NAME}" '.[] | select(.name == $n) | .uuid' | head -n 1)
+app_uuid=$(api "${COOLIFY_URL}/api/v1/applications" | jq -r --arg n "${APP_NAME}" "${items} | select(.name == \$n) | .uuid" | head -n 1)
 if [ -z "${app_uuid}" ]; then
   body=$(jq -n --arg p "${project_uuid}" --arg s "${SERVER_UUID}" --arg r "${REPO}" --arg d "${DOMAIN}" --arg n "${APP_NAME}" '{
     project_uuid: $p,
