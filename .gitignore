@@ -1,0 +1,21 @@
+# Go
+backend/bin/
+backend/coverage.out
+backend/coverage.html
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
