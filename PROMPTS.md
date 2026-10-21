@@ -127,3 +127,15 @@ Yes, keep precedence. Two conditions: build the single-pending-operator version 
 ```text
 Yes. One addition: deploy the compose stack to my Coolify server as a live demo, linked at the top of the README. Add a deploy job to ci.yml that runs only on main after tests pass and triggers the Coolify deploy webhook (token as a GitHub secret). Add a healthcheck on /healthz and memory limits to the compose file. Keep a short Deployment section in the README.
 ```
+
+## 6. Spec review: change request (sent before the details were typed)
+
+```text
+I want changes to docs/DESIGN.md:
+```
+
+## 7. Spec review: three fixes
+
+```text
+Three fixes in docs/DESIGN.md before we start. 1e999 is not a 400: encoding/json turns it into +Inf, so it fails as 422 INVALID_OPERAND via the non-finite operand check; fix section 6. Add operations() to the client and call it on mount, otherwise GET /operations is dead code and should not be in the cut list. And use "go 1.27" in go.mod, not 1.27.3.
+```

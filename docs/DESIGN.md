@@ -77,7 +77,7 @@ calculator-fullstack/
 │   ├── cmd/server/main.go          config from env, server timeouts, graceful shutdown, -healthcheck
 │   ├── internal/calc/              calc.go, calc_test.go
 │   ├── internal/api/               handler.go, errors.go, middleware.go, *_test.go
-│   ├── go.mod                      go 1.27.3, no third-party dependencies
+│   ├── go.mod                      go 1.27, no third-party dependencies
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
@@ -86,6 +86,7 @@ calculator-fullstack/
 │   │   ├── calculator/reducer.ts   pure state machine
 │   │   ├── calculator/format.ts    formatNumber()
 │   │   ├── calculator/useCalculator.ts   hook: reducer + client
+│   │   ├── calculator/useOperations.ts   hook: GET /operations on mount
 │   │   ├── calculator/useKeyboard.ts     keydown → Key
 │   │   ├── components/             Calculator, Display, Keypad, Key
 │   │   ├── App.tsx, main.tsx, index.css
@@ -107,9 +108,10 @@ calculator-fullstack/
 
 ### 5.1 Toolchain
 
-- `go.mod` declares `go 1.27.3` (latest stable on 2026-10-21). With the default
-  `GOTOOLCHAIN=auto`, an older local Go (this machine has 1.22.12) downloads
-  1.27.3 on first use. No system change required; `brew upgrade go` is optional.
+- `go.mod` declares `go 1.27` (language version, no patch). With the default
+  `GOTOOLCHAIN=auto`, an older local Go (this machine has 1.22.12) selects and
+  downloads the newest 1.27 patch release on first use; verified on 2026-10-21,
+  it picked go1.27.3. No system change required; `brew upgrade go` is optional.
 - Standard library only: `net/http` with Go 1.22+ method patterns, `encoding/json`,
   `log/slog`, `math`, `testing`, `net/http/httptest`.
 - Docker: `golang:1.27-alpine` build stage, `gcr.io/distroless/static-debian12:nonroot`
@@ -191,8 +193,10 @@ Request handling for `calculate`:
 1. `http.MaxBytesReader` at 1 MiB → 413 `PAYLOAD_TOO_LARGE`.
 2. `json.Decoder` with `DisallowUnknownFields`; body must be exactly one JSON
    object (a second `Decode` must return `io.EOF`). Decode failures → 400
-   `INVALID_REQUEST` with a safe message ("invalid JSON body", "operands must
-   be numbers", "body must contain a single JSON object").
+   `INVALID_REQUEST` with a safe message: "invalid JSON body"; "operands must
+   be numbers within float64 range" for an `UnmarshalTypeError` on operands,
+   which is also how out-of-range literals such as `1e999` surface; "body must
+   contain a single JSON object".
 3. Empty `operation` → 400 `INVALID_REQUEST` ("operation is required").
    Missing or null `operands` is an empty list and fails the arity check.
 4. `calc.Calculate` errors map via `errors.Is`:
@@ -253,8 +257,12 @@ curl -s localhost:8080/api/v1/operations
 
 Numbers are IEEE 754 doubles, returned raw. `0.1 + 0.2` is
 `0.30000000000000004` at the API; display rounding is the client's job.
-Integers are exact up to 2^53. Literals the decoder cannot represent (`1e999`)
-are rejected with 400.
+Integers are exact up to 2^53. A literal outside float64 range such as `1e999`
+never reaches `calc`: `encoding/json` rejects it with an `UnmarshalTypeError`
+and leaves the field untouched (verified on Go 1.27.3, with and without
+`GOEXPERIMENT=jsonv2`), so the API answers 400 `INVALID_REQUEST` with
+"operands must be numbers within float64 range". The non-finite operand check
+in `calc` stays as a guard for direct Go callers.
 
 ## 7. Frontend
 
@@ -283,6 +291,11 @@ export async function calculate(
   operands: number[],
   options?: { signal?: AbortSignal; baseUrl?: string },
 ): Promise<number>
+
+export interface OperationSpec { name: OperationName; arity: 1 | 2; symbol: string }
+export async function operations(
+  options?: { signal?: AbortSignal; baseUrl?: string },
+): Promise<OperationSpec[]>
 ```
 
 - POST `${baseUrl}/api/v1/calculate`, `baseUrl` defaults to `''` (same origin).
@@ -292,6 +305,8 @@ export async function calculate(
   `ApiError('UNKNOWN', 'HTTP <status>', status)`.
 - 2xx: parse `{result}`; a missing or non-numeric result →
   `ApiError('INVALID_RESPONSE', ...)`.
+- `operations()`: GET `${baseUrl}/api/v1/operations` with the same error
+  mapping; a body whose `operations` is not an array → `INVALID_RESPONSE`.
 
 ### 7.3 Types
 
@@ -404,7 +419,7 @@ Precedence is delivered in two commits so the second can be reverted alone:
 - Otherwise `Number(n.toPrecision(12)).toString()`: `0.1 + 0.2` → `"0.3"`,
   `1/3` → `"0.333333333333"`, `100/3` → `"33.3333333333"`.
 
-### 7.6 `useCalculator` and `useKeyboard`
+### 7.6 `useCalculator`, `useOperations` and `useKeyboard`
 
 ```ts
 export function useCalculator(client = calculate): {
@@ -420,6 +435,17 @@ Cleanup aborts. This is the only place `fetch` is reached. There is no
 client-side timeout: a slow request leaves the keypad disabled except for
 AC, which aborts it.
 
+`useOperations(client = operations)`: calls the backend once on mount, with
+an `AbortController` cleanup, and returns `{ status: 'loading' | 'ready' |
+'error', supported: ReadonlySet<OperationName> | null, reload: () => void }`.
+`Calculator` passes `supported` to `Keypad`, which disables the keys of
+operations the backend does not list (title "Not supported by the backend").
+While loading or after a failure every key stays enabled, so a key press
+surfaces the real error through the reducer path. On failure a status line
+under the display reads "Backend unreachable" with a Retry button that calls
+`reload()`. This makes `GET /api/v1/operations` the startup handshake: the
+UI advertises only what the backend can do.
+
 `useKeyboard(press, enabled)`: window `keydown` listener. Map: `0-9`,
 `.`, `+ - * / ^ %`, `Enter` and `=` → equals, `Escape` → clear,
 `Backspace`, `s` → sqrt. Ignored when Ctrl/Meta/Alt is held. Handled keys
@@ -427,13 +453,14 @@ call `preventDefault` (so `/` does not open quick-find in Firefox).
 
 ### 7.7 Components and layout
 
-- `Calculator`: wires `useCalculator` and `useKeyboard`, renders `Display`
-  and `Keypad`.
+- `Calculator`: wires `useCalculator`, `useOperations` and `useKeyboard`;
+  renders `Display`, the backend status line and `Keypad`.
 - `Display`: `role="status" aria-live="polite"`, right-aligned; a
   `data-length` attribute drives font shrinking (`>9` chars smaller, `>14`
   smallest); error state uses the error colour.
 - `Keypad`: renders a static `KEY_LAYOUT` array (label, aria-label, Key,
-  variant, span); `aria-busy` and disabled buttons while computing.
+  variant, span); `aria-busy` and disabled buttons while computing;
+  operation keys absent from `supported` are disabled.
 - `Key`: a `<button>` with `aria-label` for symbol keys and a `title` with
   the keyboard shortcut.
 
@@ -484,11 +511,14 @@ Frontend (`vitest run --coverage`, thresholds 85% lines and statements):
 - `format.test.ts`: the examples in 7.5 plus −0, 2^40, 1e-10.
 - `client.test.ts`: success, 422 with body → ApiError code/message, 500
   without JSON → ApiError UNKNOWN, fetch rejection → NetworkError, non-numeric
-  result → INVALID_RESPONSE, abort.
+  result → INVALID_RESPONSE, abort; `operations()` success and a non-array
+  body → INVALID_RESPONSE.
 - `Calculator.test.tsx` with a mocked `fetch`: `12 + 3 = 15`, `2 + 3 × 4 =
   14` (two calls, in order), divide by zero shows "Cannot divide by zero" and
   AC recovers, network failure shows "Backend unreachable", keyboard input,
-  keypad disabled while a request is pending.
+  keypad disabled while a request is pending, `xʸ` disabled when the mocked
+  operations list omits `power`, a failed mount request shows the status
+  line and Retry clears it after a successful reload.
 
 Coverage report: `make coverage` produces `backend/coverage.out`,
 `backend/coverage.html` and `frontend/coverage/` (HTML + text summary). All
@@ -598,6 +628,9 @@ one-line italic note of the question it answered.
 8. The precedence feature lands as its own commit so it can be reverted.
 9. Backend image is distroless and self-probing; compose has healthchecks
    and memory limits; no host ports in the deploy file.
+10. The frontend calls `GET /api/v1/operations` on mount and enables only
+    the operation keys the backend advertises; the call doubles as a startup
+    connectivity check, so the endpoint is not dead code.
 
 ## 13. Delivery order and time budget
 
@@ -608,7 +641,7 @@ one-line italic note of the question it answered.
 | 3 | feat(backend): calc package with tests | 20 min |
 | 4 | feat(backend): HTTP API, middleware, server, tests | 30 min |
 | 5 | feat(frontend): client, format, reducer v1 (single pending operator), tests | 35 min |
-| 6 | feat(frontend): keypad UI, hook, keyboard, component tests | 40 min |
+| 6 | feat(frontend): keypad UI, hooks, operations handshake, keyboard, component tests | 50 min |
 | 7 | feat(frontend): operator precedence, right-associative power (revertable) | 20 min |
 | 8 | build: Dockerfiles, compose with healthchecks and limits | 20 min |
 | 9 | ci: test, build and deploy workflow | 15 min |
@@ -616,5 +649,4 @@ one-line italic note of the question it answered.
 | 11 | deploy: Coolify app, secrets, first webhook deploy, live link in README | 20 min |
 
 Total about 4 hours of implementation. Cut list if over budget, in order:
-step 7 (precedence), keyboard shortcuts, CI docker job, `GET /operations`,
-dark mode.
+step 7 (precedence), keyboard shortcuts, CI docker job, dark mode.
