@@ -1,6 +1,6 @@
 # Calculator Full-Stack: Design
 
-Date: 2026-10-21. Status: approved design, pending implementation plan.
+Date: 2026-10-21. Status: approved in review, implementation plan pending.
 
 A keypad calculator. A React + TypeScript frontend owns the interaction state
 machine and sends every arithmetic operation to a Go REST microservice. The
@@ -95,7 +95,7 @@ calculator-fullstack/
 │   ├── Dockerfile
 │   └── package.json
 ├── docker-compose.yml              deploy-ready: no host ports
-├── docker-compose.override.yml     local only: publishes frontend on :3000
+├── docker-compose.override.yml     local only: publishes frontend :3000 and backend :8080
 ├── .github/workflows/ci.yml
 ├── Makefile
 ├── README.md
@@ -331,15 +331,19 @@ Initial state: display `"0"`, entry `null`, value `0`, empty stack,
 
 ### 7.4 Reducer (pure, no I/O)
 
-`reduce(state, action): State`. Key actions are ignored while `computing`.
-In `error`, only digit, decimal and clear are accepted; digit and decimal
-start a fresh entry.
+`reduce(state, action): State`. While `computing`, every key except clear is
+ignored. Clear resets the state and nulls the request, and the hook's effect
+cleanup then aborts the fetch; that is the only recovery path when the
+backend is slow rather than down. In `error`, only digit, decimal and clear
+are accepted; digit and decimal start a fresh entry.
 
 Entry editing:
 
 - digit: entry `null` or `"0"` → replaced; otherwise appended. At most 15
-  digit characters; further digits are ignored. `value = Number(entry)`,
-  `display = entry`, `awaitingOperand = false`.
+  digit characters (`-` and `.` do not count); further digits are ignored.
+  `value = Number(entry)`, `display = entry`.
+- digit, decimal and negate all set `awaitingOperand = false`, so
+  `5 + ± ×` computes `5 + (−5)` instead of replacing the operator.
 - decimal: entry `null` → `"0."`; already has `.` → ignored; else append.
 - backspace: entry `null` → ignored; drop the last character; empty or `"-"`
   → `"0"`.
@@ -370,8 +374,9 @@ Operators and equals:
 
 Results:
 
-- `resolved(id, v)` with `id !== request.id` → ignored. Otherwise pop the
-  reduced top, set `value = v`, `display = formatNumber(v)`, `entry = null`,
+- `resolved(id, v)` with no request or `id !== request.id` → ignored.
+  Otherwise, for `operator` and `equals`, pop the reduced top (unary pushed
+  nothing); then set `value = v`, `display = formatNumber(v)`, `entry = null`,
   `awaitingOperand = false`, clear the request, then: `unary` → idle;
   `operator` or `equals` → `startReduction(after)` again, which either emits
   the next request or finishes.
@@ -411,7 +416,9 @@ export function useCalculator(client = calculate): {
 `AbortController`, call `client(req.op, req.operands, {signal})`, dispatch
 `resolved` or `failed` (ApiError → its message with the first letter
 capitalised; NetworkError → "Backend unreachable"; AbortError → nothing).
-Cleanup aborts. This is the only place `fetch` is reached.
+Cleanup aborts. This is the only place `fetch` is reached. There is no
+client-side timeout: a slow request leaves the keypad disabled except for
+AC, which aborts it.
 
 `useKeyboard(press, enabled)`: window `keydown` listener. Map: `0-9`,
 `.`, `+ - * / ^ %`, `Enter` and `=` → equals, `Escape` → clear,
@@ -468,9 +475,11 @@ Frontend (`vitest run --coverage`, thresholds 85% lines and statements):
 
 - `reducer.test.ts`: entry rules, negate, backspace, clear keeps the id
   counter, operator replacement, request emission sequences for
-  `12 + 3 =`, `2 + 3 × 4 =` (v2: two requests, v1: still passes with
-  immediate execution semantics adjusted in the precedence commit),
-  `2 ^ 3 ^ 2 =` (v2), unary during pending operator, error state and
+  `12 + 3 =`; `2 + 3 × 4 =` in both versions: v1 emits `add(2,3)` then
+  `multiply(5,4)` and shows 20, and the precedence commit changes the
+  assertion to `multiply(3,4)` then `add(2,12)` and 14 (two requests either
+  way; order and result differ); `2 ^ 3 ^ 2 =` (v2 only, 512); unary during
+  a pending operator; error state and
   recovery, stale and mismatched ids ignored, keys ignored while computing.
 - `format.test.ts`: the examples in 7.5 plus −0, 2^40, 1e-10.
 - `client.test.ts`: success, 422 with body → ApiError code/message, 500
@@ -496,15 +505,21 @@ date; CI uploads both reports as workflow artifacts.
   `location /healthz { return 200 'ok'; }`, `try_files $uri /index.html`.
 - `docker-compose.yml` (deploy-ready, no host ports):
   - `backend`: build, `expose: ["8080"]`, `restart: unless-stopped`,
-    healthcheck `["CMD", "/server", "-healthcheck"]` every 30s, timeout 3s,
-    retries 3, start_period 5s; `deploy.resources.limits.memory: 128M`.
+    healthcheck `["CMD", "/server", "-healthcheck"]` with `interval: 10s`,
+    `timeout: 3s`, `retries: 3`, `start_period: 10s`, `start_interval: 2s`
+    (Docker 25+; without it the first probe waits a full interval and
+    `depends_on: service_healthy` delays nginx by that much);
+    `deploy.resources.limits.memory: 128M`.
   - `frontend`: build, `expose: ["80"]`, `depends_on: backend:
     condition: service_healthy`, healthcheck
     `["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]` same timings;
     memory limit `64M`.
 - `docker-compose.override.yml` (picked up automatically by `docker compose
-  up`, ignored by Coolify which runs the main file explicitly): publishes
-  `3000:80` for the frontend and `8080:8080` for the backend.
+  up`): publishes `3000:80` for the frontend and `8080:8080` for the backend.
+  Coolify copies the main file into its own deployment directory and runs it
+  with `-f`, which should skip the override; verify on the first deploy. If
+  it is picked up anyway, rename it to `docker-compose.local.yml` and
+  document `docker compose -f docker-compose.yml -f docker-compose.local.yml up`.
 - `docker compose up --build` → http://localhost:3000.
 
 ## 10. CI and deployment
@@ -535,8 +550,11 @@ Triggers: `push` to `main`, `pull_request`. Jobs:
 - Resource: Docker Compose application from the public GitHub repository
   `zgrgrcn/calculator-fullstack`, branch `main`, compose file
   `/docker-compose.yml`. Created through the Coolify API
-  (`POST /api/v1/applications/public` with `build_pack: dockercompose`); if
-  the API rejects that shape, created in the panel instead.
+  (`POST /api/v1/applications/public` with `build_pack: dockercompose`,
+  `docker_compose_location: /docker-compose.yml` and `docker_compose_domains:
+  [{name: frontend, domain: https://calculator.ozgurgurcan.com}]`; fields
+  verified against the Coolify OpenAPI spec on 2026-10-21). The deploy
+  webhook is `POST /api/v1/deploy?uuid=<app uuid>`; GET is accepted too.
 - Domain `https://calculator.ozgurgurcan.com` on the `frontend` service, port
   80. `*.ozgurgurcan.com` already resolves through Cloudflare (verified
   2026-10-21), so Traefik and TLS work as for the other apps. The backend is
@@ -575,8 +593,8 @@ one-line italic note of the question it answered.
 6. 400 for malformed requests, 422 for impossible mathematics, JSON on every
    response including 404, 405, 413 and 500.
 7. No CORS: same-origin via Vite proxy (dev) and nginx (prod). Calling the
-   API from another origin needs a CORS middleware, documented as a one-line
-   addition in the README.
+   API from another origin needs a small CORS middleware; the README says
+   where it would go.
 8. The precedence feature lands as its own commit so it can be reverted.
 9. Backend image is distroless and self-probing; compose has healthchecks
    and memory limits; no host ports in the deploy file.
