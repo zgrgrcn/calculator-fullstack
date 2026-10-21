@@ -6,14 +6,20 @@ import { ExpressionLine } from './ExpressionLine'
 import { Keypad } from './Keypad'
 
 export function Calculator() {
-  const { display, expression, status, press } = useCalculator()
+  const { display, expression, status, complete, press } = useCalculator()
   const ops = useOperations()
   useKeyboard(press)
 
   return (
     <main className="calculator">
-      <ExpressionLine text={expression} />
-      <Display text={display} error={status === 'error'} />
+      <ExpressionLine text={expression} complete={complete} />
+      <Display
+        text={display}
+        error={status === 'error'}
+        // Off while a chain such as 2 + 3 × 4 = is still evaluating, so the
+        // fade plays once, on the final result.
+        result={complete && status === 'idle'}
+      />
       {ops.status === 'error' && (
         <p className="backend-status" role="alert">
           Backend unreachable

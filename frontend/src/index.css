@@ -108,6 +108,47 @@ body {
   font-weight: 400;
 }
 
+/* Result animation. Each rule plays once when its attribute appears (on =)
+   and leaves the resting style untouched, so removing the attribute never
+   moves anything. Only transform and opacity change: no layout shift. */
+.expression[data-complete] {
+  transform-origin: right bottom;
+  animation: expression-settle 150ms ease-out;
+}
+
+.display[data-result] {
+  animation: result-in 150ms ease-out;
+}
+
+@keyframes expression-settle {
+  from {
+    opacity: 0.6;
+    transform: translateY(6px) scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expression[data-complete],
+  .display[data-result] {
+    animation: none;
+  }
+}
+
 .backend-status {
   margin: 0;
   padding: 8px 12px;

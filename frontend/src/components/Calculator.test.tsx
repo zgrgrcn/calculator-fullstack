@@ -236,4 +236,28 @@ describe('expression line', () => {
     await tap(user, 'All clear')
     expect(line.textContent).toBe('')
   })
+
+  it('marks a finished result for the CSS animation and clears the mark after', async () => {
+    fakeBackend()
+    const user = userEvent.setup()
+    render(<Calculator />)
+    const line = screen.getByTestId('expression')
+    await tap(user, '2', 'Add', '3', 'Multiply', '4', 'Equals')
+    await waitFor(() => expect(display().textContent).toBe('14'))
+    expect(line).toHaveAttribute('data-complete', 'true')
+    expect(display()).toHaveAttribute('data-result', 'true')
+
+    await tap(user, '7')
+    expect(line).not.toHaveAttribute('data-complete')
+    expect(display()).not.toHaveAttribute('data-result')
+
+    await tap(user, 'All clear', '5', 'Add', '3', 'Equals')
+    await waitFor(() => expect(display().textContent).toBe('8'))
+    expect(line).toHaveAttribute('data-complete', 'true')
+    expect(display()).toHaveAttribute('data-result', 'true')
+
+    await tap(user, 'Add')
+    expect(line).not.toHaveAttribute('data-complete')
+    expect(display()).not.toHaveAttribute('data-result')
+  })
 })

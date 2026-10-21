@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatExpression, formatUnary } from './expression'
+import { formatExpression, formatUnary, isComplete } from './expression'
 import type { ExpressionToken } from './types'
 
 const n = (text: string): ExpressionToken => ({ kind: 'number', text })
@@ -56,5 +56,16 @@ describe('formatUnary', () => {
     expect(formatUnary('sqrt', '9')).toBe('√(9)')
     expect(formatUnary('percentage', '50')).toBe('50%')
     expect(formatUnary('sqrt', '√(81)')).toBe('√(√(81))')
+  })
+})
+
+describe('isComplete', () => {
+  it('is true only when the last token is equals', () => {
+    expect(isComplete([])).toBe(false)
+    expect(isComplete([n('2')])).toBe(false)
+    expect(isComplete([n('2'), op('add')])).toBe(false)
+    expect(isComplete([n('2'), op('add'), n('3')])).toBe(false)
+    expect(isComplete([n('2'), op('add'), n('3'), eq])).toBe(true)
+    expect(isComplete([n('5'), eq, n('3')])).toBe(false)
   })
 })

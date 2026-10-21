@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer } from 'react'
 import { ApiError, NetworkError, calculate, isAbortError } from '../api/client'
-import { formatExpression } from './expression'
+import { formatExpression, isComplete } from './expression'
 import { initialState, reduce } from './reducer'
 import type { Key } from './types'
 
@@ -32,6 +32,7 @@ export function useCalculator(client: typeof calculate = calculate) {
     display: state.display,
     expression: formatExpression(state),
     status: state.status,
+    complete: isComplete(state.tokens),
     press,
   }
 }

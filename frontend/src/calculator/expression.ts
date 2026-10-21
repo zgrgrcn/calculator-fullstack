@@ -17,6 +17,11 @@ export function formatExpression(
   return parts.join(' ')
 }
 
+/** True once `=` closed the expression: the last token is `equals`. Pure. */
+export function isComplete(tokens: readonly ExpressionToken[]): boolean {
+  return tokens[tokens.length - 1]?.kind === 'equals'
+}
+
 /** Function form of a unary operation applied to `inner`: √(9), 50%. */
 export function formatUnary(op: UnaryOp, inner: string): string {
   return op === 'sqrt' ? `√(${inner})` : `${inner}%`

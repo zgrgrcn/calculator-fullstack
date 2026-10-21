@@ -1,9 +1,11 @@
 interface Props {
   text: string
   error: boolean
+  /** The text is the final result of `=`; the CSS fades it in. */
+  result: boolean
 }
 
-export function Display({ text, error }: Props) {
+export function Display({ text, error, result }: Props) {
   return (
     <div
       role="status"
@@ -11,6 +13,7 @@ export function Display({ text, error }: Props) {
       className="display"
       data-size={sizeFor(text)}
       data-error={error || undefined}
+      data-result={result || undefined}
     >
       {text}
     </div>
