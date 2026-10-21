@@ -185,3 +185,11 @@ Keep the iOS theme as the default, light and dark following the system preferenc
 
 No color values and no theme checks inside components. A small control lists the themes by name, the choice persists in localStorage, and the default is iOS following the system preference. Add one test: selecting a theme sets the attribute and the choice survives a reload. In the README, one line per theme naming the product it references.
 ```
+
+## 15. Coverage gates, end-to-end tests, mutation testing
+
+```text
+1. CI should fail when coverage drops. Frontend already has vitest thresholds; confirm npm run test:coverage exits non-zero below 90 and that the CI step uses it. For the backend, parse `go tool cover -func` in the workflow and fail under 90% statements. Print both percentages in the job summary.
+2. Add Playwright end-to-end tests that run against the compose stack, before the deploy job. Four cases: 12 + 3 = 15, 2 + 3 × 4 = 14, dividing by zero shows the error and AC recovers, and typing 2+2= on the keyboard. The deploy job must need this job, so a failing scenario never reaches the demo.
+3. Add mutation testing for backend/internal/calc only. Flip operators and constants, rerun the package tests, and fail if a mutant survives. Keep it out of the main test run; give it its own CI job and a `make mutate` target. Document in the README what it proves.
+```

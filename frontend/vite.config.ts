@@ -18,8 +18,8 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/main.tsx', 'src/**/*.test.{ts,tsx}', 'src/test/**'],
-      reporter: ['text', 'html'],
-      thresholds: { lines: 85, statements: 85 },
+      reporter: ['text', 'html', 'json-summary'],
+      thresholds: { lines: 90, statements: 90, functions: 90, branches: 90 },
     },
   },
 })

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -21,22 +22,34 @@ import (
 )
 
 func main() {
-	healthcheck := flag.Bool("healthcheck", false, "probe the running server's /healthz and exit 0 when healthy")
-	flag.Parse()
+	os.Exit(realMain(context.Background(), os.Args[1:], os.Getenv, os.Stdout))
+}
 
-	port := os.Getenv("PORT")
+// realMain is main without the process-global edges, so it can be tested:
+// it parses args, reads PORT through getenv, logs to stdout and returns the
+// exit code.
+func realMain(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) int {
+	flags := flag.NewFlagSet("server", flag.ContinueOnError)
+	flags.SetOutput(stdout)
+	healthcheck := flags.Bool("healthcheck", false, "probe the running server's /healthz and exit 0 when healthy")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+
+	port := getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 	if *healthcheck {
-		os.Exit(probe("http://127.0.0.1:" + port + "/healthz"))
+		return probe("http://127.0.0.1:" + port + "/healthz")
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	if err := run(context.Background(), logger, ":"+port); err != nil {
+	logger := slog.New(slog.NewJSONHandler(stdout, nil))
+	if err := run(ctx, logger, ":"+port); err != nil {
 		logger.Error("server failed", "err", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 // run serves on addr until ctx is cancelled or SIGINT/SIGTERM arrives, then

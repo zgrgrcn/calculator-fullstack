@@ -23,8 +23,11 @@ jobs:
         run: test -z "$(gofmt -l .)"
       - run: go vet ./...
       - run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
-      - name: Coverage summary
-        run: go tool cover -func=coverage.out | tail -1
+      - name: Coverage gate (90% statements)
+        run: |
+          total=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
+          echo "Backend coverage: ${total}% statements (gate 90%)" | tee -a "$GITHUB_STEP_SUMMARY"
+          awk -v t="$total" 'BEGIN { if (t + 0 < 90) { print "Backend coverage is below the 90% gate"; exit 1 } }'
       - uses: actions/upload-artifact@v7
         with:
           name: backend-coverage
@@ -46,7 +49,19 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm run test:coverage
+      - name: Tests with coverage (vitest thresholds fail the run below 90%)
+        run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs")
+            if (!fs.existsSync("coverage/coverage-summary.json")) process.exit(0)
+            const t = JSON.parse(fs.readFileSync("coverage/coverage-summary.json", "utf8")).total
+            const line = `Frontend coverage: statements ${t.statements.pct}%, branches ${t.branches.pct}%, functions ${t.functions.pct}%, lines ${t.lines.pct}% (thresholds 90%)`
+            console.log(line)
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, line + "\n")
+          '
       - uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
