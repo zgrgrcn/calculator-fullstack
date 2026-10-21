@@ -23,7 +23,7 @@ available on `/api/v1/calculate`.
 - History: every finished evaluation is kept in localStorage; the clock
   icon at the top-left of the panel drops down a list of `expression =
   result`, newest first; clicking an entry starts a new expression from
-  that result, a broom clears the list, and Escape or a click outside closes it
+  that result, a trash can clears the list, and Escape or a click outside closes it
 - Keys grow slightly and lighten for 120ms when pressed, by click or by
   keyboard; transform and background-color only, off under reduced motion
 - Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (follows the system light or dark preference), Netflix, Spotify, VS Code, Claude; a first visit gets one at random and keeps it
@@ -77,9 +77,11 @@ icons or bundled font files, and the product names are labels only.
 - **VS Code**: references Visual Studio Code's dark editor; editor greys, blue accent, monospace type.
 - **Claude**: references Claude by Anthropic; warm cream surfaces, terracotta accent, a serif stack.
 
-Hovering or focusing a swatch shows the theme name in a CSS tooltip. A small
-low-contrast GitHub mark fixed in the bottom-left corner (`Source on GitHub`)
-opens this repository in a new tab.
+Resting a mouse on a swatch, or focusing it from the keyboard, shows the theme
+name in a tooltip after a short delay; a tap never opens one, and it closes as
+soon as the pointer leaves or the swatch is pressed. A small low-contrast GitHub
+mark fixed in the bottom-left corner (`Source on GitHub`) opens this repository
+in a new tab.
 
 ## Quick start with Docker
 

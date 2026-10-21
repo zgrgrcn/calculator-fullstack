@@ -802,3 +802,25 @@ calculator's keyboard handling stays disabled while it is open.
 picks one of the five themes with `Math.random`, stores it immediately and
 returns it, so a reload never re-rolls; a swatch pick replaces it as before.
 iOS itself still follows the system light or dark preference when chosen.
+
+## 21. Tooltips on touch, trash icon (2026-10-22)
+
+On a phone the `:hover` tooltips stayed open after a tap, because touch
+browsers keep the tapped element in the hover state until the next tap, and
+they overlapped the display. The pseudo-element is now visible only while its
+control carries `data-tooltip-open`, which `installTooltips`
+(`src/tooltip/tooltips.ts`, installed once in `main.tsx`) sets and clears:
+
+- Opens after `TOOLTIP_DELAY_MS` (400ms) when a mouse or pen enters the control
+  (`pointerover`, ignoring moves between a control's own children) or when the
+  control takes keyboard focus (`focusin` matching `:focus-visible`, and only
+  while the last input was not a pointer press, so the dropdown's autofocused ×
+  stays quiet after a click or tap). A `pointerover` whose `pointerType` is
+  `touch` is ignored, so a tap never opens one.
+- Closes the moment the pointer leaves, on any `pointerdown`, on Enter or Space
+  release, on Escape, and when focus moves on; nothing reopens it until the
+  pointer leaves and returns. The 120ms fade applies on the way in only.
+- `aria-label`s are unchanged, so screen readers announce the same names.
+
+The dropdown's Clear button shows a trash can instead of the broom: the same
+inline SVG style, `aria-label` and tooltip.

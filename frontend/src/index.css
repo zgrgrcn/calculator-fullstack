@@ -154,7 +154,10 @@ body {
   color: var(--text);
 }
 
-/* CSS tooltips, shown on hover and on keyboard focus. */
+/* Tooltips: a pseudo-element that src/tooltip/tooltips.ts shows by setting
+   data-tooltip-open, after a short delay, for mouse and pen hover and for
+   keyboard focus, never after a touch. It closes the moment the pointer leaves
+   or the control is pressed, so the fade applies on the way in only. */
 [data-tooltip] {
   position: relative;
 }
@@ -175,13 +178,12 @@ body {
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 120ms ease-out;
   z-index: 3;
 }
 
-[data-tooltip]:hover::after,
-[data-tooltip]:focus-visible::after {
+[data-tooltip][data-tooltip-open]::after {
   opacity: 1;
+  transition: opacity 120ms ease-out;
 }
 
 .history-button::after {

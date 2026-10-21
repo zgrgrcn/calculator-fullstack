@@ -294,3 +294,12 @@ On a first visit, when no theme is stored, pick one at random from the five them
 ```text
 Remove the two annotations in CI. Pin every job to runs-on: ubuntu-24.04 instead of ubuntu-latest. And fix the "Resource not accessible by integration" warning on the backend and mutate jobs: the step that writes the job summary needs permission to do so. Add the narrowest permissions block that allows it, keep everything else read-only. Don't change what the jobs run.
 ```
+
+## 29. Tooltips on touch, trash icon
+
+Sent with a screenshot of the live site on an iPhone, the "Clear history" tooltip left open after a tap:
+
+```text
+1. Tooltips stay on screen after a tap and overlap the display. Show them only for hover and keyboard focus, never after a touch. A short delay before they appear is fine. They must also close as soon as the pointer leaves or the key is released. Keep the aria-labels, so nothing changes for a screen reader.
+2. Replace the broom icon with a trash can. It reads more clearly as "clear" at this size. Keep it an inline SVG with the same aria-label and tooltip.
+```

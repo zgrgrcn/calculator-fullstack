@@ -345,7 +345,7 @@ describe('history', () => {
     await tap(user, 'Add', '5', 'Equals')
     await waitFor(() => expect(display().textContent).toBe('20'))
 
-    // The list survives a reload and the broom clears it.
+    // The list survives a reload and the trash can clears it.
     firstLoad.unmount()
     render(<Calculator />)
     await user.click(button('History'))
