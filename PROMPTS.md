@@ -145,3 +145,9 @@ Three fixes in docs/DESIGN.md before we start. 1e999 is not a 400: encoding/json
 ```text
 Spec approved. Create the public GitHub repo, push, and write the implementation plan.
 ```
+
+## 9. Plan approved
+
+```text
+Plan approved. Execute the tasks inline here, in order, one commit each.
+```
