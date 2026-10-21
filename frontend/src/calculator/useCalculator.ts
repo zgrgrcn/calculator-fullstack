@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useReducer } from 'react'
-import { ApiError, NetworkError, calculate, isAbortError } from '../api/client'
-import { formatExpression, isComplete } from './expression'
+import { ApiError, NetworkError, evaluate, isAbortError } from '../api/client'
+import { isComplete, mainText, secondaryText, toApiTokens } from './expression'
 import { initialState, reduce } from './reducer'
 import type { Key } from './types'
 
 /**
- * Owns the calculator state and runs the one request the reducer may have
- * in flight. This is the only place the frontend reaches the network for
+ * Owns the calculator state and sends the one request the reducer places
+ * on equals. This is the only place the frontend reaches the network for
  * arithmetic.
  */
-export function useCalculator(client: typeof calculate = calculate) {
+export function useCalculator(client: typeof evaluate = evaluate) {
   const [state, dispatch] = useReducer(reduce, 1, initialState)
   const { request } = state
 
   useEffect(() => {
     if (!request) return
     const controller = new AbortController()
-    client(request.op, request.operands, { signal: controller.signal }).then(
+    client(toApiTokens(request.tokens), { signal: controller.signal }).then(
       (value) => dispatch({ type: 'resolved', id: request.id, value }),
       (err: unknown) => {
         if (!isAbortError(err))
@@ -29,10 +29,10 @@ export function useCalculator(client: typeof calculate = calculate) {
   const press = useCallback((key: Key) => dispatch({ type: 'key', key }), [])
 
   return {
-    display: state.display,
-    expression: formatExpression(state),
-    status: state.status,
+    display: mainText(state),
+    expression: secondaryText(state),
     complete: isComplete(state.tokens),
+    status: state.status,
     press,
   }
 }

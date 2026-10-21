@@ -3,10 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Calculator } from './Calculator'
 
-interface Call {
-  operation: string
-  operands: number[]
-}
+type Call = Array<{ type: string; value?: number; op?: string }>
 
 const ALL_OPERATIONS = [
   { name: 'add', arity: 2, symbol: '+' },
@@ -25,52 +22,58 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-function compute({ operation, operands }: Call): Response {
-  const [a, b] = operands
-  switch (operation) {
-    case 'add':
-      return json({ result: a + b })
-    case 'subtract':
-      return json({ result: a - b })
-    case 'multiply':
-      return json({ result: a * b })
-    case 'divide':
-      return b === 0
-        ? json(
-            {
-              error: {
-                code: 'DIVISION_BY_ZERO',
-                message: 'cannot divide by zero',
-              },
-            },
-            422,
-          )
-        : json({ result: a / b })
-    case 'power':
-      return json({ result: a ** b })
-    case 'sqrt':
-      return json({ result: Math.sqrt(a) })
-    case 'percentage':
-      return json({ result: a / 100 })
-    default:
-      return json(
-        { error: { code: 'UNKNOWN_OPERATION', message: 'unknown operation' } },
-        400,
-      )
+class DivisionByZero extends Error {}
+
+// A tiny precedence-climbing evaluator for the fake backend; test code only.
+function evaluateTokens(tokens: Call): number {
+  const precedence: Record<string, number> = {
+    add: 1,
+    subtract: 1,
+    multiply: 2,
+    divide: 2,
+    power: 3,
   }
+  let pos = 0
+  const operand = (): number => {
+    let value = tokens[pos++].value ?? NaN
+    while (tokens[pos]?.type === 'unary') {
+      value = tokens[pos].op === 'sqrt' ? Math.sqrt(value) : value / 100
+      pos++
+    }
+    return value
+  }
+  const expression = (min: number): number => {
+    let left = operand()
+    while (pos < tokens.length) {
+      const op = tokens[pos].op ?? ''
+      const prec = precedence[op]
+      if (prec < min) break
+      pos++
+      const right = expression(op === 'power' ? prec : prec + 1)
+      if (op === 'add') left += right
+      else if (op === 'subtract') left -= right
+      else if (op === 'multiply') left *= right
+      else if (op === 'divide') {
+        if (right === 0) throw new DivisionByZero()
+        left /= right
+      } else left **= right
+    }
+    return left
+  }
+  return expression(1)
 }
 
 interface BackendOptions {
   operations?: unknown[]
   handshakeDown?: boolean
-  calculateDown?: boolean
+  evaluateDown?: boolean
 }
 
 // Stubs fetch with an in-memory backend that mirrors the Go API.
 function fakeBackend({
   operations = ALL_OPERATIONS,
   handshakeDown = false,
-  calculateDown = false,
+  evaluateDown = false,
 }: BackendOptions = {}) {
   const calls: Call[] = []
   const fetchMock = vi.fn(
@@ -79,11 +82,25 @@ function fakeBackend({
         if (handshakeDown) throw new TypeError('Failed to fetch')
         return json({ operations })
       }
-      if (url.endsWith('/api/v1/calculate')) {
-        if (calculateDown) throw new TypeError('Failed to fetch')
-        const body = JSON.parse(String(init?.body)) as Call
-        calls.push(body)
-        return compute(body)
+      if (url.endsWith('/api/v1/evaluate')) {
+        if (evaluateDown) throw new TypeError('Failed to fetch')
+        const { tokens } = JSON.parse(String(init?.body)) as { tokens: Call }
+        calls.push(tokens)
+        try {
+          return json({ result: evaluateTokens(tokens) })
+        } catch (err) {
+          if (err instanceof DivisionByZero)
+            return json(
+              {
+                error: {
+                  code: 'DIVISION_BY_ZERO',
+                  message: 'cannot divide by zero',
+                },
+              },
+              422,
+            )
+          throw err
+        }
       }
       throw new Error(`unexpected request to ${url}`)
     },
@@ -111,20 +128,33 @@ describe('Calculator', () => {
     const backend = fakeBackend()
     const user = userEvent.setup()
     render(<Calculator />)
-    await tap(user, '1', '2', 'Add', '3', 'Equals')
+    await tap(user, '1', '2', 'Add', '3')
+    expect(display().textContent).toBe('12 + 3')
+    expect(backend.calls).toEqual([])
+    await tap(user, 'Equals')
     await waitFor(() => expect(display().textContent).toBe('15'))
-    expect(backend.calls).toEqual([{ operation: 'add', operands: [12, 3] }])
+    expect(backend.calls).toEqual([
+      [
+        { type: 'number', value: 12 },
+        { type: 'operator', op: 'add' },
+        { type: 'number', value: 3 },
+      ],
+    ])
   })
 
-  it('evaluates 2 + 3 × 4 = 14 with operator precedence', async () => {
+  it('evaluates 2 + 3 × 4 = 14 in a single request', async () => {
     const backend = fakeBackend()
     const user = userEvent.setup()
     render(<Calculator />)
     await tap(user, '2', 'Add', '3', 'Multiply', '4', 'Equals')
     await waitFor(() => expect(display().textContent).toBe('14'))
-    expect(backend.calls).toEqual([
-      { operation: 'multiply', operands: [3, 4] },
-      { operation: 'add', operands: [2, 12] },
+    expect(backend.calls).toHaveLength(1)
+    expect(backend.calls[0].map((t) => t.value ?? t.op)).toEqual([
+      2,
+      'add',
+      3,
+      'multiply',
+      4,
     ])
   })
 
@@ -143,7 +173,7 @@ describe('Calculator', () => {
   })
 
   it('reports an unreachable backend', async () => {
-    fakeBackend({ calculateDown: true })
+    fakeBackend({ evaluateDown: true })
     const user = userEvent.setup()
     render(<Calculator />)
     await tap(user, '1', 'Add', '1', 'Equals')
@@ -161,6 +191,8 @@ describe('Calculator', () => {
     await user.keyboard('{Escape}')
     expect(display().textContent).toBe('0')
     await user.keyboard('9s')
+    expect(display().textContent).toBe('√(9)')
+    await user.keyboard('{Enter}')
     await waitFor(() => expect(display().textContent).toBe('3'))
   })
 
@@ -229,11 +261,16 @@ describe('expression line', () => {
     const line = screen.getByTestId('expression')
     expect(line.textContent).toBe('')
     await tap(user, '2', 'Add', '3', 'Multiply')
-    expect(line.textContent).toBe('2 + 3 ×')
+    expect(display().textContent).toBe('2 + 3 ×')
+    expect(line.textContent).toBe('')
     await tap(user, '4', 'Equals')
     await waitFor(() => expect(display().textContent).toBe('14'))
     expect(line.textContent).toBe('2 + 3 × 4 =')
+    await tap(user, '7')
+    expect(display().textContent).toBe('7')
+    expect(line.textContent).toBe('Ans = 14')
     await tap(user, 'All clear')
+    expect(display().textContent).toBe('0')
     expect(line.textContent).toBe('')
   })
 

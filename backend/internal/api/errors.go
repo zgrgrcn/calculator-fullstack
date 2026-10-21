@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/zgrgrcn/calculator-fullstack/backend/internal/calc"
+	"github.com/zgrgrcn/calculator-fullstack/backend/internal/expr"
 )
 
 type errorBody struct {
@@ -29,11 +30,13 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, errorBody{Error: apiError{Code: code, Message: message}})
 }
 
-// statusFor maps a calc error to an HTTP status and error code. 400 means the
+// statusFor maps a calc or expr error to an HTTP status and error code. 400 means the
 // request named something that does not exist or has the wrong shape; 422
 // means the request was well-formed but the mathematics is impossible.
 func statusFor(err error) (int, string) {
 	switch {
+	case errors.Is(err, expr.ErrSyntax):
+		return http.StatusBadRequest, "INVALID_EXPRESSION"
 	case errors.Is(err, calc.ErrUnknownOperation):
 		return http.StatusBadRequest, "UNKNOWN_OPERATION"
 	case errors.Is(err, calc.ErrOperandCount):

@@ -694,3 +694,34 @@ one-line italic note of the question it answered.
 
 Total about 4 hours of implementation. Cut list if over budget, in order:
 step 7 (precedence), keyboard shortcuts, CI docker job, dark mode.
+
+## 14. Evaluation model change (2026-10-22)
+
+Supersedes the request-per-operation parts of sections 3, 5.3, 7.3 and 7.4;
+the recording of the Google calculator is the reference.
+
+- **Frontend builds, backend evaluates.** Keys only append to
+  `tokens`: numbers (`{kind, text, value}`), operators, postfix unaries, and
+  a closing `equals`. Nothing is sent until `=`, which places one request
+  holding the whole token list (without `equals`). The frontend does no
+  arithmetic; `±` edits the entry text only.
+- **State** is `tokens`, `entry`, `lastResult`, `status`, `error`,
+  `request`, `nextRequestId`. The operator stack, `awaitingOperand`,
+  `shouldReduce` and the request chain are gone.
+- **Display.** Main line: the expression while typing (`2 + 3 ×`), the
+  answer after `=`, the error message after a failure. Small line: the
+  evaluated or failed expression (`2 + 3 × 4 =`), otherwise `Ans = 14`.
+  Both are pure functions of state (`mainText`, `secondaryText`).
+- **Rules.** A second operator replaces a trailing one; an operator before
+  any number starts from 0; `=` is ignored on an empty expression, on a
+  trailing operator, and when repeated; after an answer a digit starts a new
+  expression, an operator or unary continues from the answer, `±` starts
+  from the negated answer; a unary wraps the entry or the closed operand
+  before it and nests (`√(√(81))`); digits after a closed operand are
+  ignored; backspace edits the entry, then removes tokens.
+- **`POST /api/v1/evaluate`** takes `{tokens: [{type:number,value} |
+  {type:operator,op} | {type:unary,op}]}` and returns `{result}`.
+  `internal/expr` parses with precedence climbing (`+ −` 1, `× ÷` 2, `^` 3
+  right-associative, postfix unary tightest) and calls `calc.Calculate` for
+  every step, so the error codes are shared; malformed lists are 400
+  `INVALID_EXPRESSION`. `/calculate` and `/operations` are unchanged.

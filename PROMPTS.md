@@ -193,3 +193,21 @@ No color values and no theme checks inside components. A small control lists the
 2. Add Playwright end-to-end tests that run against the compose stack, before the deploy job. Four cases: 12 + 3 = 15, 2 + 3 × 4 = 14, dividing by zero shows the error and AC recovers, and typing 2+2= on the keyboard. The deploy job must need this job, so a failing scenario never reaches the demo.
 3. Add mutation testing for backend/internal/calc only. Flip operators and constants, rerun the package tests, and fail if a mutant survives. Keep it out of the main test run; give it its own CI job and a `make mutate` target. Document in the README what it proves.
 ```
+
+## 16. Stop, stash, and change the evaluation model
+
+```text
+Stop after the current step. Stash the uncommitted mutation, e2e and CI changes, and do not push. I want to change the evaluation model first; we return to those tests after.
+
+The behaviour I want is in this recording: '/Users/zgrgrcn/Desktop/Screen Recording 2026-10-22 at 00.28.22.mov'. Watch it, then:
+
+Change the evaluation model. An operator key only appends to the expression; nothing is sent until =. Then the whole expression goes to the backend in one request, and the frontend still does no arithmetic.
+
+Add POST /api/v1/evaluate, taking the token list and returning the result. Keep /calculate unchanged. While typing, show the full expression in large type instead of the current number. Commit this on its own with tests green before anything else.
+```
+
+## 17. Keep the pushed commits, build on top
+
+```text
+Leave the three commits on main. Build the evaluation model on top as its own commit; we fix the red backend job when we return to the tests.
+```

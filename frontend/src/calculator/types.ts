@@ -17,52 +17,40 @@ export type Key =
   | { type: 'unary'; op: UnaryOp }
   | { type: 'equals' }
 
+/** One element of the expression. A unary applies to the operand before it. */
+export type ExpressionToken =
+  | { kind: 'number'; text: string; value: number }
+  | { kind: 'operator'; op: BinaryOp }
+  | { kind: 'unary'; op: UnaryOp }
+  | { kind: 'equals' }
+
+/** What is sent to the backend: the expression without its closing equals. */
+export type EvaluationToken = Exclude<ExpressionToken, { kind: 'equals' }>
+
+export interface Request {
+  id: number
+  tokens: readonly EvaluationToken[]
+}
+
 export type Action =
   | { type: 'key'; key: Key }
   | { type: 'resolved'; id: number; value: number }
   | { type: 'failed'; id: number; message: string }
 
-/** What the reducer does once the in-flight request resolves. */
-export type After =
-  { kind: 'operator'; op: BinaryOp } | { kind: 'equals' } | { kind: 'unary' }
-export type ReductionAfter = Exclude<After, { kind: 'unary' }>
-
-export interface Request {
-  id: number
-  op: BinaryOp | UnaryOp
-  operands: number[]
-  after: After
-}
-
-export interface PendingOperand {
-  value: number
-  op: BinaryOp
-}
-
-/** One pressed item of the expression line; unary results are number tokens with their function form as text. */
-export type ExpressionToken =
-  | { kind: 'number'; text: string }
-  | { kind: 'operator'; op: BinaryOp }
-  | { kind: 'equals' }
-
 export type Status = 'idle' | 'computing' | 'error'
 
 export interface State {
-  /** Text on screen: the entry being typed, a formatted result, or an error message. */
-  display: string
-  /** Digits typed so far; null once the display shows a computed value. */
+  /** Committed tokens; a trailing equals marks an evaluated expression. */
+  tokens: readonly ExpressionToken[]
+  /** The number being typed, not yet a token. */
   entry: string | null
-  /** Numeric value of the current operand. */
-  value: number
-  /** Left operands waiting for their right operand, innermost last. */
-  stack: PendingOperand[]
-  /** True right after an operator key, until the right operand starts. */
-  awaitingOperand: boolean
+  /** The most recent answer, shown as "Ans = …" and continued from by an operator. */
+  lastResult: number | null
   status: Status
-  /** At most one request in flight. */
+  /** Message shown in the main line while status is error. */
+  error: string | null
+  /** At most one request in flight, sent on equals. */
   request: Request | null
   /** Monotonic; survives AC so a late response can be told apart. */
   nextRequestId: number
-  /** What was pressed, for the expression line; the entry being typed is not included. */
-  tokens: readonly ExpressionToken[]
 }

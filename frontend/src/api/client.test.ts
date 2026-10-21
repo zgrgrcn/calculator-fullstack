@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
   NetworkError,
-  calculate,
+  evaluate,
   isAbortError,
   operations,
 } from './client'
@@ -18,21 +18,23 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('calculate', () => {
-  it('posts the operation and resolves the result', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({ operation: 'add', operands: [1, 2], result: 3 }),
-      )
+const TOKENS = [
+  { type: 'number', value: 2 },
+  { type: 'operator', op: 'add' },
+  { type: 'number', value: 3 },
+] as const
+
+describe('evaluate', () => {
+  it('posts the token list and resolves the result', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ result: 5 }))
     vi.stubGlobal('fetch', fetchMock)
-    await expect(calculate('add', [1, 2])).resolves.toBe(3)
+    await expect(evaluate(TOKENS)).resolves.toBe(5)
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/v1/calculate',
+      '/api/v1/evaluate',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operation: 'add', operands: [1, 2] }),
+        body: JSON.stringify({ tokens: TOKENS }),
       }),
     )
   })
@@ -40,8 +42,8 @@ describe('calculate', () => {
   it('prefixes baseUrl', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ result: 1 }))
     vi.stubGlobal('fetch', fetchMock)
-    await calculate('sqrt', [1], { baseUrl: 'http://api.test' })
-    expect(fetchMock.mock.calls[0][0]).toBe('http://api.test/api/v1/calculate')
+    await evaluate(TOKENS, { baseUrl: 'http://api.test' })
+    expect(fetchMock.mock.calls[0][0]).toBe('http://api.test/api/v1/evaluate')
   })
 
   it('rejects with ApiError carrying the backend code and message', async () => {
@@ -59,9 +61,7 @@ describe('calculate', () => {
         ),
       ),
     )
-    const err: unknown = await calculate('divide', [1, 0]).catch(
-      (e: unknown) => e,
-    )
+    const err: unknown = await evaluate(TOKENS).catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ApiError)
     expect(err).toMatchObject({
       code: 'DIVISION_BY_ZERO',
@@ -75,7 +75,7 @@ describe('calculate', () => {
       'fetch',
       vi.fn().mockResolvedValue(new Response('boom', { status: 500 })),
     )
-    await expect(calculate('add', [1, 2])).rejects.toMatchObject({
+    await expect(evaluate(TOKENS)).rejects.toMatchObject({
       code: 'UNKNOWN',
       message: 'HTTP 500',
       status: 500,
@@ -87,17 +87,14 @@ describe('calculate', () => {
       'fetch',
       vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
     )
-    const err: unknown = await calculate('add', [1, 2]).catch((e: unknown) => e)
+    const err: unknown = await evaluate(TOKENS).catch((e: unknown) => e)
     expect(err).toBeInstanceOf(NetworkError)
     expect((err as Error).message).toBe('Backend unreachable')
   })
 
   it('rejects with INVALID_RESPONSE when the result is missing', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse({ operation: 'add' })),
-    )
-    await expect(calculate('add', [1, 2])).rejects.toMatchObject({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({})))
+    await expect(evaluate(TOKENS)).rejects.toMatchObject({
       code: 'INVALID_RESPONSE',
     })
   })
@@ -106,7 +103,7 @@ describe('calculate', () => {
     const abort = new DOMException('aborted', 'AbortError')
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort))
     await expect(
-      calculate('add', [1, 2], { signal: new AbortController().signal }),
+      evaluate(TOKENS, { signal: new AbortController().signal }),
     ).rejects.toBe(abort)
   })
 })

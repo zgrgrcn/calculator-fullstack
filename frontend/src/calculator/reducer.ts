@@ -1,52 +1,33 @@
-import { formatUnary } from './expression'
 import { formatNumber } from './format'
+import { isComplete } from './expression'
 import type {
   Action,
   BinaryOp,
+  EvaluationToken,
   ExpressionToken,
   Key,
-  ReductionAfter,
-  Request,
   State,
+  UnaryOp,
 } from './types'
 
 export const MAX_DIGITS = 15
 
 export function initialState(nextRequestId = 1): State {
   return {
-    display: '0',
+    tokens: [],
     entry: null,
-    value: 0,
-    stack: [],
-    awaitingOperand: false,
+    lastResult: null,
     status: 'idle',
+    error: null,
     request: null,
     nextRequestId,
-    tokens: [],
   }
 }
 
-const PRECEDENCE: Record<BinaryOp, number> = {
-  add: 1,
-  subtract: 1,
-  multiply: 2,
-  divide: 2,
-  power: 3,
-}
-
-// Reduce the pending operator when it binds at least as tightly as the new
-// one, so 2 + 3 × 4 = 14. Power is right-associative: 2 ^ 3 ^ 2 = 2 ^ 9.
-export function shouldReduce(top: BinaryOp, incoming: BinaryOp): boolean {
-  const t = PRECEDENCE[top]
-  const i = PRECEDENCE[incoming]
-  return t > i || (t === i && incoming !== 'power')
-}
-
 /**
- * Pure state machine for the keypad. It never performs I/O: when arithmetic
- * is needed it places one `request` in the state and waits for `resolved`
- * or `failed`. `tokens` records what was pressed for the expression line
- * and is never consumed by evaluation.
+ * Pure state machine for the keypad. Keys only build the expression; the
+ * frontend does no arithmetic. Equals places one `request` with the whole
+ * token list in the state and waits for `resolved` or `failed`.
  */
 export function reduce(state: State, action: Action): State {
   switch (action.type) {
@@ -62,48 +43,44 @@ export function reduce(state: State, action: Action): State {
 function onKey(state: State, key: Key): State {
   if (key.type === 'clear') return initialState(state.nextRequestId)
   if (state.status === 'computing') return state
-  if (
-    state.status === 'error' &&
-    key.type !== 'digit' &&
-    key.type !== 'decimal'
-  )
-    return state
+  if (state.status === 'error') {
+    if (key.type !== 'digit' && key.type !== 'decimal') return state
+    state = { ...state, tokens: [], error: null, status: 'idle' }
+  }
+  const complete = isComplete(state.tokens)
   switch (key.type) {
     case 'digit':
-      return withEntry(startEntry(state), appendDigit(state.entry, key.value))
-    case 'decimal':
-      return withEntry(startEntry(state), appendDecimal(state.entry))
+    case 'decimal': {
+      if (complete) state = { ...state, tokens: [] }
+      else if (state.entry === null && operandClosed(state.tokens)) return state
+      const entry =
+        key.type === 'digit'
+          ? appendDigit(state.entry, key.value)
+          : appendDecimal(state.entry)
+      return { ...state, entry }
+    }
     case 'backspace':
-      return state.entry === null
-        ? state
-        : withEntry(state, deleteLast(state.entry))
+      return backspace(state, complete)
     case 'negate':
-      return negate(state)
+      return negate(state, complete)
     case 'operator':
-      return onOperator(state, key.op)
-    case 'equals':
-      return onEquals(state)
+      return onOperator(state, key.op, complete)
     case 'unary':
-      return onUnary(state, key.op)
+      return onUnary(state, key.op, complete)
+    case 'equals':
+      return onEquals(state, complete)
   }
 }
 
-// A digit typed after a result (not after an operator) begins a new expression.
-function startEntry(state: State): State {
-  if (state.entry === null && !state.awaitingOperand && state.tokens.length > 0)
-    return { ...state, tokens: [] }
-  return state
+// An operand is closed once it carries a unary or came from the last
+// answer: digits no longer attach to it.
+function operandClosed(tokens: readonly ExpressionToken[]): boolean {
+  const last = tokens[tokens.length - 1]
+  return last?.kind === 'number' || last?.kind === 'unary'
 }
 
-function withEntry(state: State, entry: string): State {
-  return {
-    ...state,
-    entry,
-    value: Number(entry),
-    display: entry,
-    awaitingOperand: false,
-    status: 'idle',
-  }
+function endsWithOperator(tokens: readonly ExpressionToken[]): boolean {
+  return tokens[tokens.length - 1]?.kind === 'operator'
 }
 
 function appendDigit(entry: string | null, digit: string): string {
@@ -118,173 +95,108 @@ function appendDecimal(entry: string | null): string {
   return entry.includes('.') ? entry : entry + '.'
 }
 
-function deleteLast(entry: string): string {
-  const next = entry.slice(0, -1)
-  return next === '' || next === '-' ? '0' : next
-}
-
-// Negation is a display edit, not an arithmetic operation, so it stays local.
-function negate(state: State): State {
+function backspace(state: State, complete: boolean): State {
   if (state.entry !== null) {
-    if (state.entry === '0') return { ...state, awaitingOperand: false }
-    const entry = state.entry.startsWith('-')
-      ? state.entry.slice(1)
-      : '-' + state.entry
+    const next = state.entry.slice(0, -1)
+    return { ...state, entry: next === '' || next === '-' ? null : next }
+  }
+  if (complete || state.tokens.length === 0) return state
+  return { ...state, tokens: state.tokens.slice(0, -1) }
+}
+
+// Negation is a display edit of the number being typed, the one thing the
+// frontend does to a number. After an answer it starts a new expression
+// from the negated answer.
+function negate(state: State, complete: boolean): State {
+  if (state.entry !== null) {
+    if (state.entry === '0') return state
     return {
       ...state,
-      entry,
-      value: Number(entry),
-      display: entry,
-      awaitingOperand: false,
+      entry: state.entry.startsWith('-')
+        ? state.entry.slice(1)
+        : '-' + state.entry,
     }
   }
-  if (state.value === 0) return { ...state, awaitingOperand: false }
-  const value = -state.value
-  return {
-    ...state,
-    value,
-    display: formatNumber(value),
-    awaitingOperand: false,
-  }
+  if (complete && state.lastResult !== null)
+    return { ...state, tokens: [numberToken(-state.lastResult)] }
+  return state
 }
 
-function onOperator(state: State, op: BinaryOp): State {
-  if (state.awaitingOperand && state.stack.length > 0) {
-    const top = state.stack[state.stack.length - 1]
-    const tokens = state.tokens.map((token, i) =>
-      i === state.tokens.length - 1 && token.kind === 'operator'
-        ? { kind: 'operator' as const, op }
-        : token,
-    )
+function onOperator(state: State, op: BinaryOp, complete: boolean): State {
+  const operator: ExpressionToken = { kind: 'operator', op }
+  if (complete) return { ...state, tokens: [answerToken(state), operator] }
+  if (state.entry !== null)
     return {
       ...state,
-      stack: [...state.stack.slice(0, -1), { ...top, op }],
-      tokens,
-    }
-  }
-  const tokens: ExpressionToken[] = [
-    ...withCurrentNumber(state),
-    { kind: 'operator', op },
-  ]
-  return startReduction({ ...state, tokens }, { kind: 'operator', op })
-}
-
-function onEquals(state: State): State {
-  const last = state.tokens[state.tokens.length - 1]
-  if (last?.kind === 'equals') return { ...state, entry: null }
-  const tokens: ExpressionToken[] = [
-    ...withCurrentNumber(state),
-    { kind: 'equals' },
-  ]
-  const next = { ...state, tokens }
-  return next.stack.length === 0
-    ? { ...next, entry: null }
-    : startReduction(next, { kind: 'equals' })
-}
-
-function onUnary(state: State, op: Exclude<Request['op'], BinaryOp>): State {
-  const last = state.tokens[state.tokens.length - 1]
-  let tokens: ExpressionToken[]
-  if (!last || last.kind === 'equals') {
-    tokens = [numberToken(formatUnary(op, currentText(state)))]
-  } else if (last.kind === 'number') {
-    tokens = [
-      ...state.tokens.slice(0, -1),
-      numberToken(formatUnary(op, state.entry ?? last.text)),
-    ]
-  } else {
-    tokens = [...state.tokens, numberToken(formatUnary(op, currentText(state)))]
-  }
-  return emit(
-    { ...state, tokens },
-    { op, operands: [state.value], after: { kind: 'unary' } },
-  )
-}
-
-// The tokens with the current operand added where the expression needs one:
-// after an operator, or at the start of a new expression following a result.
-function withCurrentNumber(state: State): ExpressionToken[] {
-  const token = numberToken(currentText(state))
-  const last = state.tokens[state.tokens.length - 1]
-  if (!last || last.kind === 'equals') return [token]
-  if (last.kind === 'number')
-    return state.entry === null
-      ? [...state.tokens]
-      : [...state.tokens.slice(0, -1), token]
-  return [...state.tokens, token]
-}
-
-function currentText(state: State): string {
-  return state.entry ?? formatNumber(state.value)
-}
-
-function numberToken(text: string): ExpressionToken {
-  return { kind: 'number', text }
-}
-
-// Either emits one request for the top of the stack, or pushes the current
-// value under the new operator. Called again after each result until no
-// reduction is needed.
-function startReduction(state: State, after: ReductionAfter): State {
-  const top = state.stack[state.stack.length - 1]
-  if (top && (after.kind === 'equals' || shouldReduce(top.op, after.op))) {
-    return emit(state, {
-      op: top.op,
-      operands: [top.value, state.value],
-      after,
-    })
-  }
-  if (after.kind === 'operator') {
-    return {
-      ...state,
-      stack: [...state.stack, { value: state.value, op: after.op }],
-      awaitingOperand: true,
+      tokens: [...state.tokens, entryToken(state.entry), operator],
       entry: null,
-      status: 'idle',
     }
-  }
-  return { ...state, entry: null, status: 'idle' }
+  if (operandClosed(state.tokens))
+    return { ...state, tokens: [...state.tokens, operator] }
+  if (endsWithOperator(state.tokens))
+    return { ...state, tokens: [...state.tokens.slice(0, -1), operator] }
+  return { ...state, tokens: [numberToken(0), operator] }
 }
 
-// Emitting a request consumes the typed entry: its number is now in the
-// request and in the tokens, while `display` keeps showing it until the
-// result arrives.
-function emit(state: State, request: Omit<Request, 'id'>): State {
+function onUnary(state: State, op: UnaryOp, complete: boolean): State {
+  const unary: ExpressionToken = { kind: 'unary', op }
+  if (complete) return { ...state, tokens: [answerToken(state), unary] }
+  if (state.entry !== null)
+    return {
+      ...state,
+      tokens: [...state.tokens, entryToken(state.entry), unary],
+      entry: null,
+    }
+  if (operandClosed(state.tokens))
+    return { ...state, tokens: [...state.tokens, unary] }
+  return state
+}
+
+function onEquals(state: State, complete: boolean): State {
+  if (complete) return state
+  const tokens =
+    state.entry !== null
+      ? [...state.tokens, entryToken(state.entry)]
+      : [...state.tokens]
+  if (tokens.length === 0 || endsWithOperator(tokens)) return state
+  const evaluation = tokens.filter(
+    (token): token is EvaluationToken => token.kind !== 'equals',
+  )
   return {
     ...state,
+    tokens,
     entry: null,
-    request: { id: state.nextRequestId, ...request },
     status: 'computing',
+    request: { id: state.nextRequestId, tokens: evaluation },
     nextRequestId: state.nextRequestId + 1,
   }
 }
 
 function onResolved(state: State, id: number, value: number): State {
   if (!state.request || state.request.id !== id) return state
-  const { after } = state.request
-  const stack = after.kind === 'unary' ? state.stack : state.stack.slice(0, -1)
-  const next: State = {
+  return {
     ...state,
-    stack,
-    value,
-    display: formatNumber(value),
-    entry: null,
-    awaitingOperand: false,
+    tokens: [...state.tokens, { kind: 'equals' }],
+    lastResult: value,
     status: 'idle',
+    error: null,
     request: null,
   }
-  return after.kind === 'unary' ? next : startReduction(next, after)
 }
 
 function onFailed(state: State, id: number, message: string): State {
   if (!state.request || state.request.id !== id) return state
-  return {
-    ...state,
-    status: 'error',
-    display: message,
-    stack: [],
-    entry: null,
-    awaitingOperand: false,
-    request: null,
-  }
+  return { ...state, status: 'error', error: message, request: null }
+}
+
+function entryToken(text: string): ExpressionToken {
+  return { kind: 'number', text, value: Number(text) }
+}
+
+function numberToken(value: number): ExpressionToken {
+  return { kind: 'number', text: formatNumber(value), value }
+}
+
+function answerToken(state: State): ExpressionToken {
+  return numberToken(state.lastResult ?? 0)
 }

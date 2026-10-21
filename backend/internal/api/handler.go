@@ -1,4 +1,5 @@
-// Package api exposes the calculator over HTTP. Every response, including
+// Package api exposes the calculator over HTTP: single operations on
+// /calculate, whole expressions on /evaluate. Every response, including
 // errors, is JSON.
 package api
 
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/zgrgrcn/calculator-fullstack/backend/internal/calc"
+	"github.com/zgrgrcn/calculator-fullstack/backend/internal/expr"
 )
 
 const maxBodyBytes = 1 << 20 // 1 MiB
@@ -35,11 +37,20 @@ type operationsResponse struct {
 	Operations []calc.Spec `json:"operations"`
 }
 
+type evaluateRequest struct {
+	Tokens []expr.Token `json:"tokens"`
+}
+
+type evaluateResponse struct {
+	Result float64 `json:"result"`
+}
+
 // NewHandler wires every route and middleware.
 func NewHandler(logger *slog.Logger) http.Handler {
 	h := &handler{logger: logger}
 	mux := http.NewServeMux()
 	route(mux, http.MethodPost, "/api/v1/calculate", h.calculate)
+	route(mux, http.MethodPost, "/api/v1/evaluate", h.evaluate)
 	route(mux, http.MethodGet, "/api/v1/operations", h.operations)
 	route(mux, http.MethodGet, "/healthz", h.healthz)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
@@ -70,16 +81,37 @@ func (h *handler) calculate(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := calc.Calculate(calc.Operation(req.Operation), req.Operands)
 	if err != nil {
-		status, code := statusFor(err)
-		if status == http.StatusInternalServerError {
-			h.logger.Error("calculate failed", "err", err)
-			writeError(w, status, code, "internal error")
-			return
-		}
-		writeError(w, status, code, err.Error())
+		h.writeCalcError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, calculateResponse{Operation: req.Operation, Operands: req.Operands, Result: result})
+}
+
+// evaluate computes a whole expression, given as a token list, in one request.
+func (h *handler) evaluate(w http.ResponseWriter, r *http.Request) {
+	var req evaluateRequest
+	if rerr := decodeBody(w, r, &req); rerr != nil {
+		writeError(w, rerr.status, rerr.code, rerr.message)
+		return
+	}
+	result, err := expr.Evaluate(req.Tokens)
+	if err != nil {
+		h.writeCalcError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, evaluateResponse{Result: result})
+}
+
+// writeCalcError maps an evaluation error to its status and code; anything
+// unexpected becomes a logged 500 with a generic message.
+func (h *handler) writeCalcError(w http.ResponseWriter, err error) {
+	status, code := statusFor(err)
+	if status == http.StatusInternalServerError {
+		h.logger.Error("evaluation failed", "err", err)
+		writeError(w, status, code, "internal error")
+		return
+	}
+	writeError(w, status, code, err.Error())
 }
 
 func (h *handler) operations(w http.ResponseWriter, _ *http.Request) {
@@ -129,8 +161,12 @@ func classifyDecodeError(err error) *requestError {
 			return &requestError{http.StatusBadRequest, "INVALID_REQUEST", "body must be a JSON object"}
 		case strings.HasPrefix(typeErr.Field, "operands"):
 			return &requestError{http.StatusBadRequest, "INVALID_REQUEST", "operands must be numbers within float64 range"}
-		default:
+		case typeErr.Field == "operation":
 			return &requestError{http.StatusBadRequest, "INVALID_REQUEST", "operation must be a string"}
+		case strings.HasPrefix(typeErr.Field, "tokens"):
+			return &requestError{http.StatusBadRequest, "INVALID_REQUEST", "tokens must be objects with a type and a numeric value or an op"}
+		default:
+			return &requestError{http.StatusBadRequest, "INVALID_REQUEST", fmt.Sprintf("%s has the wrong type", typeErr.Field)}
 		}
 	case strings.HasPrefix(err.Error(), "json: unknown field "):
 		// encoding/json has no typed error for this case.

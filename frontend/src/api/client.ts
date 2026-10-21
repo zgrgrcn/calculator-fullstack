@@ -1,4 +1,4 @@
-import type { OperationName, OperationSpec } from './types'
+import type { ApiToken, OperationSpec } from './types'
 
 /** The backend answered with an error body (or a non-2xx status). */
 export class ApiError extends Error {
@@ -27,15 +27,15 @@ export interface RequestOptions {
   baseUrl?: string
 }
 
-export async function calculate(
-  operation: OperationName,
-  operands: number[],
+/** Evaluates a whole expression in one request; the backend applies precedence. */
+export async function evaluate(
+  tokens: readonly ApiToken[],
   options: RequestOptions = {},
 ): Promise<number> {
-  const body = await send(`${options.baseUrl ?? ''}/api/v1/calculate`, {
+  const body = await send(`${options.baseUrl ?? ''}/api/v1/evaluate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ operation, operands }),
+    body: JSON.stringify({ tokens }),
     signal: options.signal,
   })
   const result = isRecord(body) ? body.result : undefined

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -184,5 +185,57 @@ func TestNotFound(t *testing.T) {
 		if got := errorField(t, body, "code"); got != "NOT_FOUND" {
 			t.Errorf("%s: code = %q", path, got)
 		}
+	}
+}
+
+func TestEvaluate(t *testing.T) {
+	t.Parallel()
+	h := newTestHandler()
+	tests := []struct {
+		name    string
+		body    string
+		status  int
+		code    string
+		message string
+		result  float64
+	}{
+		{"precedence", `{"tokens":[{"type":"number","value":2},{"type":"operator","op":"add"},{"type":"number","value":3},{"type":"operator","op":"multiply"},{"type":"number","value":4}]}`, 200, "", "", 14},
+		{"postfix percent", `{"tokens":[{"type":"number","value":196},{"type":"unary","op":"percentage"},{"type":"operator","op":"multiply"},{"type":"number","value":5}]}`, 200, "", "", 9.8},
+		{"single number", `{"tokens":[{"type":"number","value":7}]}`, 200, "", "", 7},
+		{"division by zero", `{"tokens":[{"type":"number","value":1},{"type":"operator","op":"divide"},{"type":"number","value":0}]}`, 422, "DIVISION_BY_ZERO", "cannot divide by zero", 0},
+		{"trailing operator", `{"tokens":[{"type":"number","value":2},{"type":"operator","op":"add"}]}`, 400, "INVALID_EXPRESSION", "invalid expression: expression ends with an operator", 0},
+		{"empty", `{"tokens":[]}`, 400, "INVALID_EXPRESSION", "invalid expression: expression is empty", 0},
+		{"missing tokens", `{}`, 400, "INVALID_EXPRESSION", "", 0},
+		{"unknown operator", `{"tokens":[{"type":"number","value":1},{"type":"operator","op":"modulo"},{"type":"number","value":2}]}`, 400, "UNKNOWN_OPERATION", "", 0},
+		{"value as string", `{"tokens":[{"type":"number","value":"2"}]}`, 400, "INVALID_REQUEST", "tokens must be objects with a type and a numeric value or an op", 0},
+		{"unknown token field", `{"tokens":[{"type":"number","value":2,"x":1}]}`, 400, "INVALID_REQUEST", `unknown field "x"`, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			rec, body := do(t, h, http.MethodPost, "/api/v1/evaluate", tc.body)
+			if rec.Code != tc.status {
+				t.Fatalf("status = %d, want %d; body = %s", rec.Code, tc.status, rec.Body.String())
+			}
+			if tc.status == http.StatusOK {
+				got, _ := body["result"].(float64)
+				if math.Abs(got-tc.result) > 1e-12 {
+					t.Errorf("result = %v, want %v", got, tc.result)
+				}
+				return
+			}
+			if got := errorField(t, body, "code"); got != tc.code {
+				t.Errorf("code = %q, want %q", got, tc.code)
+			}
+			if tc.message != "" {
+				if got := errorField(t, body, "message"); got != tc.message {
+					t.Errorf("message = %q, want %q", got, tc.message)
+				}
+			}
+		})
+	}
+	rec, _ := do(t, h, http.MethodGet, "/api/v1/evaluate", "")
+	if rec.Code != http.StatusMethodNotAllowed || rec.Header().Get("Allow") != "POST" {
+		t.Errorf("GET /api/v1/evaluate: status = %d, Allow = %q", rec.Code, rec.Header().Get("Allow"))
 	}
 }

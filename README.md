@@ -4,16 +4,20 @@
 
 **Live demo:** https://calculator.ozgurgurcan.com
 
-A keypad calculator. The React + TypeScript frontend owns the interaction
-state machine; every arithmetic operation is sent to a Go REST microservice
-that validates the input, computes one operation per request and answers in
-JSON.
+A keypad calculator. The React + TypeScript frontend only builds the
+expression; on `=` the whole token list goes to a Go REST microservice in one
+request, which validates it, evaluates it with the usual precedence and
+answers in JSON. The frontend does no arithmetic. Single operations stay
+available on `/api/v1/calculate`.
 
 - Add, subtract, multiply, divide, power, square root, percentage
-- Operator precedence as on iOS (`2 + 3 × 4 = 14`), right-associative power
-  (`2 ^ 3 ^ 2 = 512`)
+- Evaluation model as in the Google calculator: the expression builds in
+  large type as keys are pressed, nothing is sent until `=`, then the backend
+  applies precedence (`2 + 3 × 4 = 14`) with right-associative power
+  (`2 ^ 3 ^ 2 = 512`) and postfix `%` and `√` (`196% × 5 = 9.8`)
 - Keyboard support, responsive layout from 320px up, light and dark themes
-- Expression line above the display showing exactly what was pressed, as on iOS
+- Small line above the display with the evaluated expression (`2 + 3 × 4 =`)
+  or the last answer (`Ans = 14`) while the next one is typed
 - Five themes switched from a small control and remembered in localStorage: iOS (default, follows the system light or dark preference), Netflix, Spotify, VS Code, Claude
 - Every backend response is JSON, including 404, 405, 413 and 500
 - Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
@@ -28,18 +32,19 @@ JSON.
 │ Keypad ─▶ reducer (pure)     │ ─────▶ │ api: routes, decode, errors  │
 │   ▲         │ request        │ /api/  │   │                          │
 │   │         ▼                │ ◀───── │   ▼                          │
-│ Display ◀─ useCalculator ──▶ client   │ calc: registry + Calculate() │
+│ Display ◀─ useCalculator ──▶ client   │ expr: precedence ─▶ calc     │
 └──────────────────────────────┘        └──────────────────────────────┘
         dev: Vite proxy /api → :8080        prod: nginx proxy /api → backend:8080
 ```
 
-A key press goes into a pure reducer. When arithmetic is needed the reducer
-places exactly one `request` in its state; a hook runs it against the API and
-dispatches `resolved` or `failed`; the reducer updates the display and may
-emit the next request (a chain such as `2 + 3 × 4 =` takes two requests).
-Dependencies point one way: `calc ← api ← cmd/server` in Go, and
-`reducer, format, client ← useCalculator ← components` in TypeScript, so each
-unit is tested on its own.
+A key press goes into a pure reducer that only appends to a token list: an
+operator key never computes anything. On `=` the reducer places exactly one
+`request` holding the whole expression; a hook posts it to
+`/api/v1/evaluate` and dispatches `resolved` or `failed`; the reducer then
+shows the answer under the evaluated expression. Dependencies point one way:
+`calc ← expr ← api ← cmd/server` in Go, and `reducer, expression, format,
+client ← useCalculator ← components` in TypeScript, so each unit is tested on
+its own.
 
 On start the frontend calls `GET /api/v1/operations` and enables only the
 operation keys the backend advertises; the call doubles as a connectivity
@@ -97,15 +102,31 @@ Base path `/api/v1`. Every response is `application/json; charset=utf-8`.
 
 | Method | Path | Purpose |
 |---|---|---|
+| `POST` | `/api/v1/evaluate` | Evaluate a whole expression given as a token list |
 | `POST` | `/api/v1/calculate` | Run one operation |
 | `GET` | `/api/v1/operations` | List operations with arity and symbol |
 | `GET` | `/healthz` | Liveness, `{"status":"ok"}` |
 
 Operations and operand counts: `add`, `subtract`, `multiply`, `divide`,
 `power` take two operands; `sqrt` and `percentage` take one.
-`percentage` is `a ÷ 100`, like the `%` key on the iOS calculator.
+`percentage` is `a ÷ 100`.
+
+`/evaluate` takes `{"tokens":[...]}` where each token is
+`{"type":"number","value":2}`, `{"type":"operator","op":"add"}` or a postfix
+`{"type":"unary","op":"sqrt"}` applying to the operand before it. `× ÷` bind
+tighter than `+ −`, `^` tighter still and right-associative, unary tightest.
+The frontend sends exactly this on `=`.
 
 ```bash
+curl -s -X POST localhost:8080/api/v1/evaluate \
+  -H 'Content-Type: application/json' \
+  -d '{"tokens":[{"type":"number","value":2},{"type":"operator","op":"add"},{"type":"number","value":3},{"type":"operator","op":"multiply"},{"type":"number","value":4}]}'
+# {"result":14}
+
+curl -s -X POST localhost:8080/api/v1/evaluate \
+  -d '{"tokens":[{"type":"number","value":196},{"type":"unary","op":"percentage"},{"type":"operator","op":"multiply"},{"type":"number","value":5}]}'
+# {"result":9.8}
+
 curl -s -X POST localhost:8080/api/v1/calculate \
   -H 'Content-Type: application/json' \
   -d '{"operation":"add","operands":[1.5,2.25]}'
@@ -133,6 +154,7 @@ impossible.
 |---|---|---|
 | 400 | `INVALID_REQUEST` | Malformed JSON, unknown field, non-numeric or out-of-range operand (`1e999`), missing operation, more than one JSON value in the body |
 | 400 | `UNKNOWN_OPERATION` | `operation` is not in the registry |
+| 400 | `INVALID_EXPRESSION` | `/evaluate` token list is empty or malformed: leading or doubled operators, a trailing operator, a unary with nothing before it |
 | 400 | `INVALID_OPERAND_COUNT` | Wrong number of operands for the operation |
 | 422 | `INVALID_OPERAND` | Square root of a negative number |
 | 422 | `DIVISION_BY_ZERO` | Divisor is 0 (or −0) |
@@ -150,20 +172,23 @@ carries a finite number.
 
 ## Design decisions and assumptions
 
-1. **One endpoint per operation call, not an expression evaluator.** The
-   backend stays a small arithmetic service with one validation path; the
-   frontend owns the calculator semantics in a pure, fully unit-tested
-   reducer. The trade-off is that a chain issues a few sequential requests.
-2. **Precedence and associativity.** `+ −` bind weaker than `× ÷`, which
-   bind weaker than `^`; `^` is right-associative like scientific
-   calculators. This landed as its own commit (`156951c`) so it can be
-   reverted to classic four-function behaviour in one step.
-3. **Percentage is unary** (`a ÷ 100`), following the iOS calculator.
-   Negation (`±`) is a display edit and never calls the API.
+1. **One request per expression.** Keys only build a token list; `=` posts
+   it to `/api/v1/evaluate`, where `expr` applies precedence and delegates
+   every step to `calc`, so the frontend does no arithmetic and the error
+   vocabulary is shared with `/calculate`, which stays for single operations.
+   (Until 2026-10-22 the frontend evaluated chains step by step through
+   `/calculate`; the redesign followed a recording of the Google calculator.)
+2. **Precedence and associativity**, now in the backend: `+ −` bind weaker
+   than `× ÷`, which bind weaker than `^`; `^` is right-associative like
+   scientific calculators; postfix unary binds tightest.
+3. **Percentage and square root are postfix tokens** (`196% × 5`),
+   evaluated with the rest. Negation (`±`) edits the number being typed and
+   is the only thing the frontend changes about a number.
 4. **Validation on both layers.** The keypad constrains entry (15 digits,
-   one decimal point, no leading zeros, operators replace a pending operator
-   instead of stacking); the API re-validates everything and the UI shows the
-   backend's own error message.
+   one decimal point, no leading zeros, a second operator replaces a trailing
+   one, `=` is ignored while the expression ends with an operator); the API
+   re-validates everything, including the token list's shape, and the UI
+   shows the backend's own error message under the failed expression.
 5. **No CORS code, by design.** The frontend and the API are served from one
    origin: Vite proxies `/api` in development and nginx does it in the
    compose stack. A client on another origin would need a small CORS
@@ -195,16 +220,18 @@ make mutate     # mutation test internal/calc; fails if a mutant survives
 
 Backend: table-driven tests for every operation and edge case in `calc`
 (division by zero and by −0, negative square root, overflow, NaN and Inf
-operands, arity, unknown operation), and `httptest` tests for every route,
-status code and error code in `api`, including malformed JSON, unknown
-fields, trailing data, oversized bodies and the recover middleware.
+operands, arity, unknown operation), a precedence and syntax table for
+`expr`, and `httptest` tests for every route, status code and error code in
+`api`, including malformed JSON, unknown fields, trailing data, oversized
+bodies and the recover middleware.
 
-Frontend: the reducer (entry rules, negate, clear, operator replacement,
-precedence request sequences, unary operations, failure and recovery, stale
-request ids), display formatting, the API client (every error path and
-abort), and the `Calculator` component against a fake backend (chains,
-division by zero, unreachable backend, keyboard input, disabled keypad while
-a request is pending, operations handshake and Retry).
+Frontend: the reducer (entry rules, append-only operators, postfix unary
+tokens, one request on `=`, continuing from the answer, failure and
+recovery, stale request ids), expression formatting, the API client (every
+error path and abort), and the `Calculator` component against a fake
+`/evaluate` backend (single request per chain, division by zero,
+unreachable backend, keyboard input, disabled keypad while a request is
+pending, operations handshake and Retry).
 
 CI fails when coverage drops below 90%: vitest's own thresholds for lines,
 statements, functions and branches fail `npm run test:coverage`, and the
@@ -215,10 +242,11 @@ uploaded as artifacts. Coverage on 2026-10-22 (`make coverage`):
 | Layer | Statements | Lines | Notes |
 |---|---|---|---|
 | Go `internal/calc` | 100% | | |
-| Go `internal/api` | 94.9% | | |
+| Go `internal/api` | 94.6% | | |
+| Go `internal/expr` | 97.8% | | |
 | Go `cmd/server` | 90.2% | | `main` is one line calling the tested `realMain` |
-| Go total | 94.6% | | gate: 90% |
-| Frontend | 96.8% | 98.6% | branches 94.1%, functions 98.7%; 90% thresholds enforced |
+| Go total | 95.1% of the tested packages | | the gate's `./...` run also counts the untested `tools/mutate`, which is why the backend job is red; fixed with the test work |
+| Frontend | 97.0% | 98.6% | branches 94.5%, functions 98.7%; 90% thresholds enforced |
 
 ### End-to-end tests
 
@@ -276,6 +304,7 @@ webhook URL for the CI secret.
 backend/
   cmd/server/          main: config from env, timeouts, graceful shutdown, -healthcheck
   internal/calc/       pure arithmetic: operation registry, Calculate, sentinel errors
+  internal/expr/       token-list evaluation with precedence, built on calc
   internal/api/        HTTP handler, JSON decoding, error mapping, middleware
   tools/mutate/        mutation tester for internal/calc (make mutate)
 frontend/
