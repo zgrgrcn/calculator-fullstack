@@ -22,3 +22,6 @@ npm-debug.log*
 
 # Tool output
 frontend/.vitest/
+
+# Claude desktop launch configs
+.claude/
