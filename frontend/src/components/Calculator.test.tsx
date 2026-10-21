@@ -299,3 +299,45 @@ describe('expression line', () => {
     expect(display()).not.toHaveAttribute('data-result')
   })
 })
+
+describe('history', () => {
+  it('stores finished expressions and lists them newest first in the panel', async () => {
+    localStorage.removeItem('calculator.history')
+    fakeBackend()
+    const user = userEvent.setup()
+    const firstLoad = render(<Calculator />)
+    await tap(user, '1', '2', 'Add', '3', 'Equals')
+    await waitFor(() => expect(display().textContent).toBe('15'))
+    await tap(user, '2', 'Multiply', '4', 'Equals')
+    await waitFor(() => expect(display().textContent).toBe('8'))
+
+    await user.click(button('History'))
+    const dialog = screen.getByRole('dialog', { name: 'History' })
+    expect(
+      within(dialog)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(['2 × 4 = 8', '12 + 3 = 15'])
+    expect(
+      JSON.parse(localStorage.getItem('calculator.history') ?? '[]'),
+    ).toHaveLength(2)
+
+    // Escape closes the panel without clearing the calculator.
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(display().textContent).toBe('8')
+
+    // The list survives a reload and can be cleared.
+    firstLoad.unmount()
+    render(<Calculator />)
+    await user.click(button('History'))
+    expect(
+      within(screen.getByRole('dialog')).getAllByRole('listitem'),
+    ).toHaveLength(2)
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Clear' }),
+    )
+    expect(screen.getByText('No calculations yet')).toBeInTheDocument()
+    expect(localStorage.getItem('calculator.history')).toBe('[]')
+  })
+})

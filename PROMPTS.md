@@ -229,3 +229,9 @@ Scope the backend coverage run to the tested packages now, as its own small comm
 ```text
 On =, animate the expression: it shrinks and moves up into the small line, and the result fades in where it was. 200ms, CSS only. Respect prefers-reduced-motion.
 ```
+
+## 21. History
+
+```text
+Store each finished expression and its result in localStorage. A history button opens a panel listing "expression = result", newest first.
+```

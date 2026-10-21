@@ -18,6 +18,8 @@ available on `/api/v1/calculate`.
 - Keyboard support, responsive layout from 320px up, light and dark themes
 - Small line above the display with the evaluated expression (`2 + 3 × 4 =`)
   or the last answer (`Ans = 14`) while the next one is typed
+- History: every finished evaluation is kept in localStorage; a History
+  button opens a panel listing `expression = result`, newest first
 - Five themes switched from a small control and remembered in localStorage: iOS (default, follows the system light or dark preference), Netflix, Spotify, VS Code, Claude
 - Every backend response is JSON, including 404, 405, 413 and 500
 - Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
@@ -203,8 +205,10 @@ carries a finite number.
 9. **Distroless backend image** with a self-probing `-healthcheck` flag,
    because the image has no shell or curl. The compose file has no host
    ports; `docker-compose.override.yml` adds them for local use only.
-10. **Not built:** history, memory keys, repeat-equals, authentication, rate
-    limiting, persistence.
+10. **History** is a localStorage list of `expression = result`, newest
+    first, capped at 50, fed by the hook once a result is accepted; the
+    reducer stays free of side effects. **Not built:** memory keys,
+    repeat-equals, authentication, rate limiting, server-side persistence.
 
 The full design is in [docs/DESIGN.md](docs/DESIGN.md) and the task plan in
 [docs/PLAN.md](docs/PLAN.md).
@@ -312,6 +316,7 @@ frontend/
   src/calculator/      reducer (pure state machine), format, hooks
   src/components/      Calculator, Display, Keypad, Key, key layout
   src/theme/           theme names, persistence, picker
+  src/history/         history storage, hook, panel
   nginx.conf           static files + /api proxy for the container
 e2e/                   Playwright scenarios against the compose stack (make e2e)
 docker-compose.yml     deploy-ready stack; docker-compose.override.yml adds local ports

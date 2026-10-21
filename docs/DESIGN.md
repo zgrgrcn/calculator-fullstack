@@ -725,3 +725,16 @@ the recording of the Google calculator is the reference.
   right-associative, postfix unary tightest) and calls `calc.Calculate` for
   every step, so the error codes are shared; malformed lists are 400
   `INVALID_EXPRESSION`. `/calculate` and `/operations` are unchanged.
+
+## 15. History (added 2026-10-22)
+
+`src/history/history.ts` reads and writes `calculator.history` in
+localStorage: an array of `{expression, result, at}`, newest first, capped
+at 50, validated on read. `useHistory` owns the list; `useCalculator` takes
+an `onResult` callback (read through a ref so a new identity never restarts
+a request) and calls it with the formatted expression and result once an
+answer is accepted. `HistoryPanel` is a `role="dialog"` listing
+`expression = result` with Clear and Close; Escape closes it, and the
+calculator's keyboard handling is disabled while it is open so Escape does
+not also clear. The toolbar above the expression line holds the History
+button and the theme picker.

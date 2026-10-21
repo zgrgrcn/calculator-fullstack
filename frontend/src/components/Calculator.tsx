@@ -1,25 +1,43 @@
+import { useState } from 'react'
 import { useCalculator } from '../calculator/useCalculator'
 import { useKeyboard } from '../calculator/useKeyboard'
 import { useOperations } from '../calculator/useOperations'
+import { HistoryPanel } from '../history/HistoryPanel'
+import { useHistory } from '../history/useHistory'
+import { ThemePicker } from '../theme/ThemePicker'
 import { Display } from './Display'
 import { ExpressionLine } from './ExpressionLine'
 import { Keypad } from './Keypad'
-import { ThemePicker } from '../theme/ThemePicker'
 
 export function Calculator() {
-  const { display, expression, status, complete, press } = useCalculator()
+  const history = useHistory()
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const { display, expression, complete, status, press } = useCalculator({
+    onResult: history.add,
+  })
   const ops = useOperations()
-  useKeyboard(press)
+  // While the history panel is open, keys belong to it (Escape closes it).
+  useKeyboard(press, !historyOpen)
 
   return (
     <main className="calculator">
-      <ThemePicker />
+      <div className="toolbar">
+        <button
+          type="button"
+          className="history-button"
+          onClick={() => setHistoryOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={historyOpen}
+        >
+          History
+        </button>
+        <ThemePicker />
+      </div>
       <ExpressionLine text={expression} complete={complete} />
+      {/* The attribute stays off while a chain is still computing, so the fade plays once on the final result. */}
       <Display
         text={display}
         error={status === 'error'}
-        // Off while a chain such as 2 + 3 × 4 = is still evaluating, so the
-        // fade plays once, on the final result.
         result={complete && status === 'idle'}
       />
       {ops.status === 'error' && (
@@ -35,6 +53,13 @@ export function Calculator() {
         busy={status === 'computing'}
         supported={ops.supported}
       />
+      {historyOpen && (
+        <HistoryPanel
+          entries={history.entries}
+          onClear={history.clear}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
     </main>
   )
 }

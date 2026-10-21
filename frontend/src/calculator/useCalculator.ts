@@ -1,23 +1,55 @@
-import { useCallback, useEffect, useReducer } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { ApiError, NetworkError, evaluate, isAbortError } from '../api/client'
-import { isComplete, mainText, secondaryText, toApiTokens } from './expression'
+import {
+  formatExpression,
+  isComplete,
+  mainText,
+  secondaryText,
+  toApiTokens,
+} from './expression'
+import { formatNumber } from './format'
 import { initialState, reduce } from './reducer'
 import type { Key } from './types'
+
+export interface FinishedEvaluation {
+  /** The expression as shown, without the closing equals. */
+  expression: string
+  /** The result as shown. */
+  result: string
+}
+
+interface Options {
+  client?: typeof evaluate
+  /** Called once per answered evaluation, after the result is accepted. */
+  onResult?: (finished: FinishedEvaluation) => void
+}
 
 /**
  * Owns the calculator state and sends the one request the reducer places
  * on equals. This is the only place the frontend reaches the network for
  * arithmetic.
  */
-export function useCalculator(client: typeof evaluate = evaluate) {
+export function useCalculator({ client = evaluate, onResult }: Options = {}) {
   const [state, dispatch] = useReducer(reduce, 1, initialState)
   const { request } = state
+
+  // Read through a ref so a new callback identity never restarts a request.
+  const onResultRef = useRef(onResult)
+  useEffect(() => {
+    onResultRef.current = onResult
+  }, [onResult])
 
   useEffect(() => {
     if (!request) return
     const controller = new AbortController()
     client(toApiTokens(request.tokens), { signal: controller.signal }).then(
-      (value) => dispatch({ type: 'resolved', id: request.id, value }),
+      (value) => {
+        dispatch({ type: 'resolved', id: request.id, value })
+        onResultRef.current?.({
+          expression: formatExpression({ tokens: request.tokens, entry: null }),
+          result: formatNumber(value),
+        })
+      },
       (err: unknown) => {
         if (!isAbortError(err))
           dispatch({ type: 'failed', id: request.id, message: toMessage(err) })
