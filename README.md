@@ -216,6 +216,10 @@ workflow stays green on forks.
 
 Both containers define healthchecks and memory limits (128 MB backend, 64 MB
 frontend); Coolify uses the compose healthchecks as-is.
+[`deploy/coolify-create.sh`](deploy/coolify-create.sh) creates the project
+and the compose application through the Coolify API (idempotent; needs a
+token with the root ability in `~/.config/coolify/token`) and prints the
+webhook URL for the CI secret.
 
 ## Project structure
 
