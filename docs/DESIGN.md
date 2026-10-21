@@ -108,10 +108,13 @@ calculator-fullstack/
 
 ### 5.1 Toolchain
 
-- `go.mod` declares `go 1.27` (language version, no patch). With the default
-  `GOTOOLCHAIN=auto`, an older local Go (this machine has 1.22.12) selects and
-  downloads the newest 1.27 patch release on first use; verified on 2026-10-21,
-  it picked go1.27.3. No system change required; `brew upgrade go` is optional.
+- `go.mod` declares `go 1.27` (language version, no patch), as is conventional.
+  Any toolchain ≥ 1.27.0 on PATH is used as is; this machine's Homebrew Go is
+  1.27.3. With the default `GOTOOLCHAIN=auto`, an older local Go switches to
+  the minimum, go1.27.0, and downloads it (verified on 2026-10-21 with the
+  1.22.12 binary in /usr/local/go). Docker and CI resolve `1.27` to the newest
+  patch. A developer who wants the newest patch locally upgrades Go; no system
+  change is needed to build.
 - Standard library only: `net/http` with Go 1.22+ method patterns, `encoding/json`,
   `log/slog`, `math`, `testing`, `net/http/httptest`.
 - Docker: `golang:1.27-alpine` build stage, `gcr.io/distroless/static-debian12:nonroot`
