@@ -39,6 +39,12 @@ export interface PendingOperand {
   op: BinaryOp
 }
 
+/** One pressed item of the expression line; unary results are number tokens with their function form as text. */
+export type ExpressionToken =
+  | { kind: 'number'; text: string }
+  | { kind: 'operator'; op: BinaryOp }
+  | { kind: 'equals' }
+
 export type Status = 'idle' | 'computing' | 'error'
 
 export interface State {
@@ -57,4 +63,6 @@ export interface State {
   request: Request | null
   /** Monotonic; survives AC so a late response can be told apart. */
   nextRequestId: number
+  /** What was pressed, for the expression line; the entry being typed is not included. */
+  tokens: readonly ExpressionToken[]
 }

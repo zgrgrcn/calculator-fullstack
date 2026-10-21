@@ -3,6 +3,7 @@
   --bg: #f2f2f7;
   --panel: #ffffff;
   --text: #111111;
+  --muted: #6b6b70;
   --digit: #e5e5ea;
   --digit-text: #111111;
   --function: #d1d1d6;
@@ -18,6 +19,7 @@
     --bg: #000000;
     --panel: #1c1c1e;
     --text: #ffffff;
+    --muted: #a1a1a6;
     --digit: #333336;
     --digit-text: #ffffff;
     --function: #a5a5a5;
@@ -64,6 +66,18 @@ body {
     min-height: auto;
     margin-top: 8vh;
   }
+}
+
+.expression {
+  min-height: 1.5rem;
+  margin: 0;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1.5rem;
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .display {

@@ -13,6 +13,7 @@ JSON.
 - Operator precedence as on iOS (`2 + 3 × 4 = 14`), right-associative power
   (`2 ^ 3 ^ 2 = 512`)
 - Keyboard support, responsive layout from 320px up, light and dark themes
+- Expression line above the display showing exactly what was pressed, as on iOS
 - Every backend response is JSON, including 404, 405, 413 and 500
 - Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
   96% on the frontend

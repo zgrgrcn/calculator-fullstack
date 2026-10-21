@@ -157,3 +157,9 @@ Plan approved. Execute the tasks inline here, in order, one commit each.
 ```text
 I saved a root-ability token at ~/.config/coolify/token (chmod 600). Run deploy/coolify-create.sh and finish Task 10.
 ```
+
+## 11. Expression line
+
+```text
+Add an expression line above the main display, like the small right-aligned line in the attached screenshot. It shows exactly what was pressed: after 2 + 3 × it reads "2 + 3 ×", and after = it reads "2 + 3 × 4 =". Derive it from the existing reducer state with a pure function, no new state field, with unit tests. Keep the main display as it is.
+```

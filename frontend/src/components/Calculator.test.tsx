@@ -220,3 +220,20 @@ describe('Calculator', () => {
     )
   })
 })
+
+describe('expression line', () => {
+  it('shows what was pressed above the display, before and after =', async () => {
+    fakeBackend()
+    const user = userEvent.setup()
+    render(<Calculator />)
+    const line = screen.getByTestId('expression')
+    expect(line.textContent).toBe('')
+    await tap(user, '2', 'Add', '3', 'Multiply')
+    expect(line.textContent).toBe('2 + 3 ×')
+    await tap(user, '4', 'Equals')
+    await waitFor(() => expect(display().textContent).toBe('14'))
+    expect(line.textContent).toBe('2 + 3 × 4 =')
+    await tap(user, 'All clear')
+    expect(line.textContent).toBe('')
+  })
+})

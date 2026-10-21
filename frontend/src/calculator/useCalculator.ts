@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer } from 'react'
 import { ApiError, NetworkError, calculate, isAbortError } from '../api/client'
+import { formatExpression } from './expression'
 import { initialState, reduce } from './reducer'
 import type { Key } from './types'
 
@@ -27,7 +28,12 @@ export function useCalculator(client: typeof calculate = calculate) {
 
   const press = useCallback((key: Key) => dispatch({ type: 'key', key }), [])
 
-  return { display: state.display, status: state.status, press }
+  return {
+    display: state.display,
+    expression: formatExpression(state),
+    status: state.status,
+    press,
+  }
 }
 
 export function toMessage(err: unknown): string {

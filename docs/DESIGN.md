@@ -333,6 +333,7 @@ export type After = { kind: 'operator'; op: BinaryOp } | { kind: 'equals' } | { 
 
 export interface Request { id: number; op: BinaryOp | UnaryOp; operands: number[]; after: After }
 export interface PendingOperand { value: number; op: BinaryOp }
+export type ExpressionToken = { kind: 'number'; text: string } | { kind: 'operator'; op: BinaryOp } | { kind: 'equals' }
 
 export interface State {
   display: string;              // text on screen: entry, formatted result, or error message
@@ -343,6 +344,7 @@ export interface State {
   status: 'idle' | 'computing' | 'error';
   request: Request | null;      // at most one in flight
   nextRequestId: number;        // monotonic, survives AC
+  tokens: ExpressionToken[];    // what was pressed, for the expression line (added 2026-10-21)
 }
 ```
 
@@ -414,6 +416,19 @@ Precedence is delivered in two commits so the second can be reverted alone:
   gives 14 with two sequential requests; `2 × 3 + 4` reduces to 6 when `+`
   is pressed, then pushes `6 +`.
 
+Expression line (added 2026-10-21): `tokens` records what was pressed and is
+never consumed by evaluation, because the stack is. `formatExpression(state)`
+in `expression.ts` is a pure function: tokens joined with spaces, then the
+entry still being typed. Rules: an operator or `=` first commits the current
+number (the entry, or the formatted value after an operator or a result);
+emitting a request consumes the entry; a second operator replaces the last
+operator token; a unary key writes its function form (`√(9)`, `50%`), nesting
+on a unary result; a digit typed after a result starts a new expression, an
+operator after a result continues from it (`5 +`); AC clears; a failed
+expression stays visible until the next digit. So `2 + 3 ×` reads
+"2 + 3 ×", and after `4 =` the line reads "2 + 3 × 4 =" while the display
+shows 14.
+
 ### 7.5 `format.ts`
 
 `formatNumber(n: number): string`
@@ -460,6 +475,8 @@ call `preventDefault` (so `/` does not open quick-find in Firefox).
 
 - `Calculator`: wires `useCalculator`, `useOperations` and `useKeyboard`;
   renders `Display`, the backend status line and `Keypad`.
+- `ExpressionLine`: the small muted line above the display with
+  `formatExpression(state)`; `data-testid="expression"`.
 - `Display`: `role="status" aria-live="polite"`, right-aligned; a
   `data-length` attribute drives font shrinking (`>9` chars smaller, `>14`
   smallest); error state uses the error colour.

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { formatExpression } from './expression'
 import { MAX_DIGITS, initialState, reduce } from './reducer'
 import type { Digit, Key, State } from './types'
 
@@ -316,5 +317,76 @@ describe('while computing', () => {
   it('ignores a result with a mismatched id', () => {
     const s = press(s0, '1+1=')
     expect(reduce(s, { type: 'resolved', id: 42, value: 2 })).toBe(s)
+  })
+})
+
+describe('expression line', () => {
+  const line = (s: State) => formatExpression(s)
+
+  it('shows exactly what was pressed, before and after =', () => {
+    let s = press(s0, '2+3*')
+    expect(line(s)).toBe('2 + 3 ×')
+    s = press(s, '4')
+    expect(line(s)).toBe('2 + 3 × 4')
+    s = press(s, '=')
+    expect(line(s)).toBe('2 + 3 × 4 =')
+    s = resolved(s, 12)
+    s = resolved(s, 14)
+    expect(s.display).toBe('14')
+    expect(line(s)).toBe('2 + 3 × 4 =')
+  })
+
+  it('keeps the typed operands when the reducer evaluates early', () => {
+    let s = press(s0, '2*3+')
+    expect(line(s)).toBe('2 × 3 +')
+    s = resolved(s, 6)
+    expect(s.display).toBe('6')
+    expect(line(s)).toBe('2 × 3 +')
+    s = press(s, '4=')
+    expect(line(s)).toBe('2 × 3 + 4 =')
+  })
+
+  it('replaces the operator when another one follows', () => {
+    expect(line(press(s0, '5+*'))).toBe('5 ×')
+  })
+
+  it('repeats the displayed value when = follows an operator', () => {
+    expect(line(press(s0, '5+='))).toBe('5 + 5 =')
+  })
+
+  it('writes unary operations in function form', () => {
+    expect(line(press(s0, '9r'))).toBe('√(9)')
+    expect(line(press(s0, '50%'))).toBe('50%')
+    let s = resolved(press(s0, '2+9r'), 3)
+    expect(line(s)).toBe('2 + √(9)')
+    s = press(s, '=')
+    expect(line(s)).toBe('2 + √(9) =')
+    const nested = press(resolved(press(s0, '81r'), 9), 'r')
+    expect(line(nested)).toBe('√(√(81))')
+  })
+
+  it('shows the sign of a negated entry and a negated right operand', () => {
+    expect(line(press(s0, '5~'))).toBe('-5')
+    expect(line(press(s0, '5+~*'))).toBe('5 + -5 ×')
+  })
+
+  it('starts fresh after a result: a digit clears, an operator continues from the result', () => {
+    const result = resolved(press(s0, '2+3='), 5)
+    expect(line(press(result, '7'))).toBe('7')
+    expect(line(press(result, '+'))).toBe('5 +')
+    expect(line(press(result, 'r'))).toBe('√(5)')
+    expect(line(press(result, '='))).toBe('2 + 3 =')
+  })
+
+  it('keeps the failed expression and clears on AC or the next digit', () => {
+    const s = press(s0, '1/0=')
+    const failed = reduce(s, {
+      type: 'failed',
+      id: s.request!.id,
+      message: 'Cannot divide by zero',
+    })
+    expect(line(failed)).toBe('1 ÷ 0 =')
+    expect(line(press(failed, '7'))).toBe('7')
+    expect(line(press(failed, 'C'))).toBe('')
   })
 })
