@@ -288,3 +288,9 @@ Close the dropdown when clicking anywhere outside it, and on Escape. Keep the ex
 ```text
 On a first visit, when no theme is stored, pick one at random from the five themes instead of defaulting to iOS. Once the user chooses a theme, keep that choice as before. Reload must not re-roll a stored choice.
 ```
+
+## 28. CI annotations, runner pin, summary permissions
+
+```text
+Remove the two annotations in CI. Pin every job to runs-on: ubuntu-24.04 instead of ubuntu-latest. And fix the "Resource not accessible by integration" warning on the backend and mutate jobs: the step that writes the job summary needs permission to do so. Add the narrowest permissions block that allows it, keep everything else read-only. Don't change what the jobs run.
+```
