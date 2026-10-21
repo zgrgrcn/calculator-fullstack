@@ -168,7 +168,8 @@ Semantics:
 Rules:
 
 - Unknown operation → `ErrUnknownOperation`; wrong operand count →
-  `ErrOperandCount` wrapped with detail ("sqrt expects 1 operand, got 2").
+  `ErrOperandCount` wrapped with detail, so the message reads "wrong number
+  of operands: sqrt expects 1 operand, got 2".
 - Any NaN or ±Inf operand → `ErrInvalidOperand` (defensive; JSON cannot carry
   them, but the package is usable without the API).
 - Every result is checked with `math.IsNaN` / `math.IsInf` → `ErrNotFinite`.
@@ -252,7 +253,7 @@ curl -s -X POST localhost:8080/api/v1/calculate -d '{"operation":"divide","opera
 # 422 {"error":{"code":"DIVISION_BY_ZERO","message":"cannot divide by zero"}}
 
 curl -s -X POST localhost:8080/api/v1/calculate -d '{"operation":"sqrt","operands":[1,2]}'
-# 400 {"error":{"code":"INVALID_OPERAND_COUNT","message":"sqrt expects 1 operand, got 2"}}
+# 400 {"error":{"code":"INVALID_OPERAND_COUNT","message":"wrong number of operands: sqrt expects 1 operand, got 2"}}
 
 curl -s localhost:8080/api/v1/operations
 # {"operations":[{"name":"add","arity":2,"symbol":"+"}, ...]}
@@ -271,8 +272,9 @@ in `calc` stays as a guard for direct Go callers.
 
 ### 7.1 Toolchain
 
-Vite 7 `react-ts` template: React 19, TypeScript 5.x, ESLint from the
-template, Prettier with defaults. Tests: Vitest, `@testing-library/react`,
+Vite 8 `react-ts` template: React 19, TypeScript 6, oxlint (the linter the
+template ships), Prettier matching the template style (no semicolons, single
+quotes). Tests: Vitest 5, `@testing-library/react`,
 `@testing-library/user-event`, `@testing-library/jest-dom`, `jsdom`,
 `@vitest/coverage-v8`. Plain CSS with custom properties; no UI library.
 
@@ -570,7 +572,9 @@ Triggers: `push` to `main`, `pull_request`. Jobs:
 4. `deploy`: `needs: [backend, frontend, docker]`, runs only when
    `github.event_name == 'push' && github.ref == 'refs/heads/main'`,
    environment `production`. One step:
-   `curl --fail-with-body -X POST "$COOLIFY_WEBHOOK_URL" -H "Authorization: Bearer $COOLIFY_TOKEN"`.
+   `curl --fail-with-body -X POST "$COOLIFY_WEBHOOK_URL" -H "Authorization: Bearer $COOLIFY_TOKEN"`,
+   which exits 0 with a notice while either secret is unset, so CI stays
+   green before the Coolify app exists. Actions are pinned to their v7 majors.
    Secrets `COOLIFY_TOKEN` and `COOLIFY_WEBHOOK_URL` are set by the user with
    `gh secret set` in their own terminal, never pasted into chat (PROMPTS.md
    records every chat message verbatim).
