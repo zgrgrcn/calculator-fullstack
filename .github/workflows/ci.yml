@@ -101,8 +101,23 @@ jobs:
           name: compose-logs
           path: compose.log
 
+  mutate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+      - name: Mutation test internal/calc (fails if a mutant survives)
+        run: |
+          set +e
+          make mutate 2>&1 | tee mutate.log
+          status=${PIPESTATUS[0]}
+          grep -E '^[0-9]+ mutants:' mutate.log >> "$GITHUB_STEP_SUMMARY" || true
+          exit "$status"
+
   deploy:
-    needs: [backend, frontend, e2e]
+    needs: [backend, frontend, e2e, mutate]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production

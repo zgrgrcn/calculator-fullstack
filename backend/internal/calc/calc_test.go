@@ -39,6 +39,8 @@ func TestCalculate(t *testing.T) {
 		{"too many operands", Sqrt, []float64{1, 2}, 0, ErrOperandCount},
 		{"nan operand", Add, []float64{math.NaN(), 1}, 0, ErrInvalidOperand},
 		{"inf operand", Add, []float64{math.Inf(1), 1}, 0, ErrInvalidOperand},
+		{"negative inf operand", Add, []float64{math.Inf(-1), 1}, 0, ErrInvalidOperand},
+		{"multiply overflow negative", Multiply, []float64{-1e308, 10}, 0, ErrNotFinite},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -47,6 +49,9 @@ func TestCalculate(t *testing.T) {
 			if tc.wantErr != nil {
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("Calculate(%s, %v) error = %v, want %v", tc.op, tc.operands, err, tc.wantErr)
+				}
+				if got != 0 {
+					t.Fatalf("Calculate(%s, %v) = %v with an error, want the zero value", tc.op, tc.operands, got)
 				}
 				return
 			}
@@ -86,5 +91,18 @@ func TestOperations(t *testing.T) {
 		if got[i] != want[i] {
 			t.Errorf("Operations()[%d] = %+v, want %+v", i, got[i], want[i])
 		}
+	}
+}
+
+// The helpers behind divide and sqrt follow the Go convention of returning
+// the zero value with an error; Calculate discards their result on error, so
+// only a direct test can hold them to it.
+func TestHelpersReturnZeroWithError(t *testing.T) {
+	t.Parallel()
+	if got, err := divide([]float64{1, 0}); got != 0 || !errors.Is(err, ErrDivisionByZero) {
+		t.Errorf("divide(1, 0) = %v, %v; want 0, ErrDivisionByZero", got, err)
+	}
+	if got, err := sqrt([]float64{-4}); got != 0 || !errors.Is(err, ErrInvalidOperand) {
+		t.Errorf("sqrt(-4) = %v, %v; want 0, ErrInvalidOperand", got, err)
 	}
 }

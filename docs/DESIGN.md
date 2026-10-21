@@ -559,6 +559,14 @@ Coverage report: `make coverage` produces `backend/coverage.out`,
 are gitignored. The README carries a table with the final numbers and the
 date; CI uploads both reports as workflow artifacts.
 
+Added 2026-10-22: CI fails below 90% coverage on both layers (vitest
+thresholds; `go tool cover -func` parsed in the workflow), prints both
+percentages in the job summary; `e2e/` holds four Playwright scenarios run
+against the compose stack by the `e2e` job, which the deploy job needs;
+`backend/tools/mutate` mutation-tests `internal/calc` (operator and constant
+flips, 47 mutants, all killed) in its own `mutate` job, also required by
+deploy, and via `make mutate`.
+
 ## 9. Docker and Compose
 
 - `backend/Dockerfile`: multi-stage, static binary, distroless nonroot,

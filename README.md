@@ -189,6 +189,8 @@ The full design is in [docs/DESIGN.md](docs/DESIGN.md) and the task plan in
 ```bash
 make test       # go vet + go test -race, then typecheck + lint + vitest
 make coverage   # backend/coverage.html and frontend/coverage/index.html
+make e2e        # compose stack up, Playwright against it, stack down
+make mutate     # mutation test internal/calc; fails if a mutant survives
 ```
 
 Backend: table-driven tests for every operation and edge case in `calc`
@@ -204,16 +206,45 @@ abort), and the `Calculator` component against a fake backend (chains,
 division by zero, unreachable backend, keyboard input, disabled keypad while
 a request is pending, operations handshake and Retry).
 
-Coverage on 2026-10-21 (`make coverage`; CI uploads both reports as
-artifacts on every run):
+CI fails when coverage drops below 90%: vitest's own thresholds for lines,
+statements, functions and branches fail `npm run test:coverage`, and the
+backend job parses `go tool cover -func` and fails under 90% statements.
+Both percentages are printed in the job summary and the reports are
+uploaded as artifacts. Coverage on 2026-10-22 (`make coverage`):
 
 | Layer | Statements | Lines | Notes |
 |---|---|---|---|
 | Go `internal/calc` | 100% | | |
 | Go `internal/api` | 94.9% | | |
-| Go `cmd/server` | 63.9% | | `run` and `probe` are tested; `main` is wiring |
-| Go total | 88.0% | | |
-| Frontend | 96.3% | 98.7% | branches 93.6%, functions 98.1%; 85% thresholds enforced |
+| Go `cmd/server` | 90.2% | | `main` is one line calling the tested `realMain` |
+| Go total | 94.6% | | gate: 90% |
+| Frontend | 96.8% | 98.6% | branches 94.1%, functions 98.7%; 90% thresholds enforced |
+
+### End-to-end tests
+
+[`e2e/`](e2e) holds four Playwright scenarios that run against the compose
+stack exactly as deployed: `12 + 3 = 15`, `2 + 3 × 4 = 14`, dividing by
+zero shows the error and AC recovers, and typing `2+2=` on the keyboard.
+`make e2e` builds and starts the stack, runs them and tears it down. In CI
+the `e2e` job does the same, and the deploy job needs it, so a failing
+scenario never reaches the demo.
+
+### Mutation testing
+
+`make mutate` runs [`backend/tools/mutate`](backend/tools/mutate/main.go),
+a small mutation tester for `internal/calc` only. It flips every binary
+operator (`+ - * / < <= > >= == != && ||`) and bumps every numeric constant
+by one, one site at a time, reruns the package tests against each mutant in
+a scratch copy of the module, and fails if any mutant survives.
+
+What it proves: coverage shows which lines the tests execute; a 47 of 47
+kill score shows the assertions would notice a wrong operator, a wrong
+constant or a flipped comparison anywhere in the arithmetic. Writing it
+found two real gaps: nothing tested a negative-infinity operand or result,
+so `math.IsInf(x, 0)` could have become `math.IsInf(x, 1)` unnoticed, and
+the zero result returned with every error was unasserted. It stays out of
+`make test`, runs in its own CI job in about half a minute, and the deploy
+job needs it.
 
 ## Deployment
 
@@ -224,8 +255,8 @@ inside the compose network.
 
 Deploys are gated by CI: the `deploy` job in
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs after the
-backend, frontend and docker jobs succeed on a push to `main` and calls the
-Coolify deploy webhook. It needs two repository secrets, `COOLIFY_TOKEN`
+backend, frontend, e2e and mutate jobs succeed on a push to `main` and calls
+the Coolify deploy webhook. It needs two repository secrets, `COOLIFY_TOKEN`
 (an API token with only the `deploy` ability) and `COOLIFY_WEBHOOK_URL`
 (`https://<coolify>/api/v1/deploy?uuid=<app uuid>&force=false`), set with
 `gh secret set`. While either is missing the job skips with a notice, so the
@@ -246,11 +277,14 @@ backend/
   cmd/server/          main: config from env, timeouts, graceful shutdown, -healthcheck
   internal/calc/       pure arithmetic: operation registry, Calculate, sentinel errors
   internal/api/        HTTP handler, JSON decoding, error mapping, middleware
+  tools/mutate/        mutation tester for internal/calc (make mutate)
 frontend/
   src/api/             typed client: calculate(), operations(), ApiError, NetworkError
   src/calculator/      reducer (pure state machine), format, hooks
   src/components/      Calculator, Display, Keypad, Key, key layout
+  src/theme/           theme names, persistence, picker
   nginx.conf           static files + /api proxy for the container
+e2e/                   Playwright scenarios against the compose stack (make e2e)
 docker-compose.yml     deploy-ready stack; docker-compose.override.yml adds local ports
 .github/workflows/     CI: test, build, deploy
 docs/                  DESIGN.md (spec), PLAN.md (task plan)
@@ -272,5 +306,4 @@ order.
 - Calculation history and repeat-equals
 - A CORS middleware if the API gets external clients
 - Request ids and metrics on the backend
-- Browser end-to-end tests with Playwright against the compose stack
 - Decimal arithmetic for exact money-style results
