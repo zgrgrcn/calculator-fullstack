@@ -87,7 +87,7 @@ body {
   align-items: flex-end;
   justify-content: flex-end;
   font-size: 3.5rem;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.1;
   text-align: right;
   overflow-wrap: anywhere;
@@ -144,6 +144,7 @@ body {
   border-radius: 50%;
   font: inherit;
   font-size: 1.6rem;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -164,16 +165,20 @@ body {
 .key-digit {
   background: var(--digit);
   color: var(--digit-text);
+  font-size: 2rem;
 }
 
 .key-function {
   background: var(--function);
   color: var(--function-text);
+  font-size: 1.45rem;
 }
 
 .key-operator {
   background: var(--operator);
   color: var(--operator-text);
+  font-size: 2.4rem;
+  font-weight: 500;
 }
 
 .key:hover:not(:disabled) {
@@ -200,8 +205,14 @@ body {
   .keypad {
     gap: 8px;
   }
-  .key {
-    font-size: 1.4rem;
+  .key-digit {
+    font-size: 1.6rem;
+  }
+  .key-function {
+    font-size: 1.2rem;
+  }
+  .key-operator {
+    font-size: 1.9rem;
   }
   .display {
     font-size: 3rem;

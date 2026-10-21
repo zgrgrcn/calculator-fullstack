@@ -163,3 +163,17 @@ I saved a root-ability token at ~/.config/coolify/token (chmod 600). Run deploy/
 ```text
 Add an expression line above the main display, like the small right-aligned line in the attached screenshot. It shows exactly what was pressed: after 2 + 3 × it reads "2 + 3 ×", and after = it reads "2 + 3 × 4 =". Derive it from the existing reducer state with a pure function, no new state field, with unit tests. Keep the main display as it is.
 ```
+
+## 12. Keypad typography
+
+```text
+do this task with sub agent, use opus 5.5 high.
+The keypad glyphs look thin and small next to the display. Bump the display weight, make digit keys larger, and make the operator glyphs (÷ × − + =) larger than the digits. Keep √, xʸ and the function keys smaller since they are two characters. CSS only.
+```
+
+## 13. Result animation
+
+```text
+do this task with sub agent, use opus 5.5 high.
+When = is pressed the result just replaces the number. Animate it: the expression line slides up and shrinks into place, and the result fades in, like the calculator in the screenshot. About 150ms, CSS only. Respect prefers-reduced-motion.
+```
