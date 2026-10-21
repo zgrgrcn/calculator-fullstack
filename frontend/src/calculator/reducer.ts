@@ -23,10 +23,20 @@ export function initialState(nextRequestId = 1): State {
   }
 }
 
-// A new operator always reduces the pending one first: classic
-// four-function behaviour, 2 + 3 × 4 = 20.
-export function shouldReduce(_top: BinaryOp, _incoming: BinaryOp): boolean {
-  return true
+const PRECEDENCE: Record<BinaryOp, number> = {
+  add: 1,
+  subtract: 1,
+  multiply: 2,
+  divide: 2,
+  power: 3,
+}
+
+// Reduce the pending operator when it binds at least as tightly as the new
+// one, so 2 + 3 × 4 = 14. Power is right-associative: 2 ^ 3 ^ 2 = 2 ^ 9.
+export function shouldReduce(top: BinaryOp, incoming: BinaryOp): boolean {
+  const t = PRECEDENCE[top]
+  const i = PRECEDENCE[incoming]
+  return t > i || (t === i && incoming !== 'power')
 }
 
 /**

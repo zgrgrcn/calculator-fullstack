@@ -116,17 +116,15 @@ describe('Calculator', () => {
     expect(backend.calls).toEqual([{ operation: 'add', operands: [12, 3] }])
   })
 
-  it('evaluates 2 + 3 × 4 = left to right with a single pending operator', async () => {
+  it('evaluates 2 + 3 × 4 = 14 with operator precedence', async () => {
     const backend = fakeBackend()
     const user = userEvent.setup()
     render(<Calculator />)
-    await tap(user, '2', 'Add', '3', 'Multiply')
-    await waitFor(() => expect(display().textContent).toBe('5'))
-    await tap(user, '4', 'Equals')
-    await waitFor(() => expect(display().textContent).toBe('20'))
+    await tap(user, '2', 'Add', '3', 'Multiply', '4', 'Equals')
+    await waitFor(() => expect(display().textContent).toBe('14'))
     expect(backend.calls).toEqual([
-      { operation: 'add', operands: [2, 3] },
-      { operation: 'multiply', operands: [5, 4] },
+      { operation: 'multiply', operands: [3, 4] },
+      { operation: 'add', operands: [2, 12] },
     ])
   })
 

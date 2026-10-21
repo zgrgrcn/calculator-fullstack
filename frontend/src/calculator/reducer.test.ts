@@ -97,10 +97,14 @@ describe('negate', () => {
   })
 
   it('counts as entering the right operand', () => {
-    expect(press(s0, '5+~*').request).toMatchObject({
+    expect(press(s0, '5+~-').request).toMatchObject({
       op: 'add',
       operands: [5, -5],
     })
+    expect(press(s0, '5+~*').stack).toEqual([
+      { value: 5, op: 'add' },
+      { value: -5, op: 'multiply' },
+    ])
   })
 })
 
@@ -169,24 +173,79 @@ describe('operators', () => {
   })
 })
 
-describe('chains with a single pending operator', () => {
-  it('2 + 3 × 4 = evaluates left to right', () => {
+describe('chains with operator precedence', () => {
+  it('2 + 3 × 4 = applies × before +', () => {
     let s = press(s0, '2+3*')
+    expect(s.request).toBeNull()
+    expect(s).toMatchObject({
+      stack: [
+        { value: 2, op: 'add' },
+        { value: 3, op: 'multiply' },
+      ],
+      display: '3',
+    })
+    s = press(s, '4=')
+    expect(s.request).toMatchObject({
+      op: 'multiply',
+      operands: [3, 4],
+      after: { kind: 'equals' },
+    })
+    s = resolved(s, 12)
     expect(s.request).toMatchObject({
       op: 'add',
-      operands: [2, 3],
-      after: { kind: 'operator', op: 'multiply' },
+      operands: [2, 12],
+      after: { kind: 'equals' },
     })
-    s = resolved(s, 5)
+    expect(resolved(s, 14)).toMatchObject({
+      display: '14',
+      stack: [],
+      status: 'idle',
+    })
+  })
+
+  it('2 × 3 + 4 = reduces the pending × when + arrives', () => {
+    let s = press(s0, '2*3+')
+    expect(s.request).toMatchObject({
+      op: 'multiply',
+      operands: [2, 3],
+      after: { kind: 'operator', op: 'add' },
+    })
+    s = resolved(s, 6)
     expect(s).toMatchObject({
-      stack: [{ value: 5, op: 'multiply' }],
-      display: '5',
+      stack: [{ value: 6, op: 'add' }],
+      display: '6',
       request: null,
       awaitingOperand: true,
     })
     s = press(s, '4=')
-    expect(s.request).toMatchObject({ op: 'multiply', operands: [5, 4] })
-    expect(resolved(s, 20).display).toBe('20')
+    expect(s.request).toMatchObject({ op: 'add', operands: [6, 4] })
+    expect(resolved(s, 10).display).toBe('10')
+  })
+
+  it('8 − 2 − 1 = is left-associative', () => {
+    let s = press(s0, '8-2-')
+    expect(s.request).toMatchObject({ op: 'subtract', operands: [8, 2] })
+    s = press(resolved(s, 6), '1=')
+    expect(s.request).toMatchObject({ op: 'subtract', operands: [6, 1] })
+    expect(resolved(s, 5).display).toBe('5')
+  })
+
+  it('2 ^ 3 ^ 2 = is right-associative', () => {
+    let s = press(s0, '2^3^')
+    expect(s.request).toBeNull()
+    expect(s.stack).toEqual([
+      { value: 2, op: 'power' },
+      { value: 3, op: 'power' },
+    ])
+    s = press(s, '2=')
+    expect(s.request).toMatchObject({ op: 'power', operands: [3, 2] })
+    s = resolved(s, 9)
+    expect(s.request).toMatchObject({ op: 'power', operands: [2, 9] })
+    expect(resolved(s, 512).display).toBe('512')
+  })
+
+  it('AC in the middle of a chain discards the stack', () => {
+    expect(press(s0, '2+3*C').stack).toEqual([])
   })
 })
 
