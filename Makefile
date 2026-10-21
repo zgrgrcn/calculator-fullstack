@@ -1,7 +1,9 @@
-.PHONY: help backend frontend test test-backend test-frontend coverage lint docker-up docker-down
+.PHONY: help setup backend frontend test test-backend test-frontend coverage lint docker-up docker-down
 
 help:            ## list targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  %-16s %s\n", $$1, $$2}'
+setup:           ## install frontend dependencies
+	cd frontend && npm ci
 backend:         ## run the API on :8080
 	cd backend && go run ./cmd/server
 frontend:        ## run the Vite dev server on :5173
