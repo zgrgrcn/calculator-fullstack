@@ -1,9 +1,10 @@
-.PHONY: help setup backend frontend test test-backend test-frontend coverage lint docker-up docker-down
+.PHONY: help setup backend frontend test test-backend test-frontend coverage lint mutate e2e docker-up docker-down
 
 help:            ## list targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  %-16s %s\n", $$1, $$2}'
-setup:           ## install frontend dependencies
+setup:           ## install frontend and e2e dependencies
 	cd frontend && npm ci
+	cd e2e && npm ci
 backend:         ## run the API on :8080
 	cd backend && go run ./cmd/server
 frontend:        ## run the Vite dev server on :5173
@@ -19,6 +20,11 @@ coverage:        ## write backend/coverage.html and frontend/coverage/
 lint:            ## formatting and static checks
 	cd backend && test -z "$$(gofmt -l .)" && go vet ./...
 	cd frontend && npm run lint && npm run format:check && npm run typecheck
+e2e:             ## build the stack, run Playwright against it, tear it down
+	docker compose up --build -d --wait
+	cd e2e && npm test; status=$$?; cd .. && docker compose down; exit $$status
+mutate:          ## mutation-test internal/calc; fails if a mutant survives
+	cd backend && go run ./tools/mutate ./internal/calc
 docker-up:       ## build and start the stack on http://localhost:3000
 	docker compose up --build -d
 docker-down:

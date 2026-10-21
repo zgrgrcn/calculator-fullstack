@@ -67,14 +67,42 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage
 
-  docker:
+  e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: docker compose build
+      - name: Build and start the compose stack
+        run: docker compose up --build -d --wait
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: npm ci
+        working-directory: e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: Playwright against http://localhost:3000
+        run: npx playwright test
+        working-directory: e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+      - name: Stack logs and teardown
+        if: always()
+        run: |
+          docker compose logs --no-color > compose.log 2>&1 || true
+          docker compose down
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: compose-logs
+          path: compose.log
 
   deploy:
-    needs: [backend, frontend, docker]
+    needs: [backend, frontend, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
