@@ -204,37 +204,51 @@ body {
   font-weight: 400;
 }
 
-/* Result animation. Each rule plays once when its attribute appears (on =)
-   and leaves the resting style untouched, so removing the attribute never
-   moves anything. Only transform and opacity change: no layout shift. */
+/* Equals animation. When the expression is evaluated, the small line starts
+   at the size and position the expression had in the main line and travels
+   up into place while the result fades in where the expression was. Each
+   rule plays once when its attribute appears and leaves the resting style
+   untouched, so removing the attribute never moves anything. Transform,
+   opacity and colour only: no layout shift. */
 .expression[data-complete] {
+  --expression-travel: calc(
+    4.5rem + 12px
+  ); /* display height plus the column gap */
+  --expression-scale: 3.18; /* 3.5rem / 1.1rem */
   transform-origin: right bottom;
-  animation: expression-settle 150ms ease-out;
+  animation: expression-into-place 200ms ease-out;
+}
+
+.expression[data-complete][data-size='small'] {
+  --expression-scale: 2.27; /* 2.5rem / 1.1rem */
+}
+
+.expression[data-complete][data-size='tiny'] {
+  --expression-scale: 1.45; /* 1.6rem / 1.1rem */
 }
 
 .display[data-result] {
-  animation: result-in 150ms ease-out;
+  animation: result-in 120ms ease-out 80ms backwards;
 }
 
-@keyframes expression-settle {
+@keyframes expression-into-place {
   from {
-    opacity: 0.6;
-    transform: translateY(6px) scale(1.08);
+    transform: translateY(var(--expression-travel))
+      scale(var(--expression-scale));
+    color: var(--text);
   }
   to {
-    opacity: 1;
     transform: none;
+    color: var(--muted);
   }
 }
 
 @keyframes result-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -353,5 +367,8 @@ body {
   }
   .display {
     font-size: 3rem;
+  }
+  .expression[data-complete] {
+    --expression-scale: 2.73; /* 3rem / 1.1rem */
   }
 }

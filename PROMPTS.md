@@ -223,3 +223,9 @@ Push 5c8f9b9 to origin/main now; the demo stays on the old model until the cover
 ```text
 Scope the backend coverage run to the tested packages now, as its own small commit, so CI goes green and the demo deploys.
 ```
+
+## 20. Equals animation, expression into the small line
+
+```text
+On =, animate the expression: it shrinks and moves up into the small line, and the result fades in where it was. 200ms, CSS only. Respect prefers-reduced-motion.
+```

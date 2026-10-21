@@ -283,6 +283,7 @@ describe('expression line', () => {
     await waitFor(() => expect(display().textContent).toBe('14'))
     expect(line).toHaveAttribute('data-complete', 'true')
     expect(display()).toHaveAttribute('data-result', 'true')
+    expect(line).toHaveAttribute('data-size', 'normal')
 
     await tap(user, '7')
     expect(line).not.toHaveAttribute('data-complete')
