@@ -221,27 +221,75 @@ body {
   outline-offset: 2px;
 }
 
+/* Theme swatches: fixed bottom-right, one per theme in that theme's accent.
+   Colours live here, not in the component. */
 .theme-picker {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: var(--muted);
+  gap: 10px;
+  padding: 6px;
+  z-index: 2;
 }
 
-.theme-picker select {
-  font: inherit;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--function);
-  border-radius: 6px;
-  padding: 2px 6px;
+.swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
 }
 
-.theme-picker select:focus-visible {
+.swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 0 0 3px var(--text);
+}
+
+.swatch:focus-visible {
   outline: 3px solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+.swatch[data-swatch='ios'] {
+  --swatch: #ff9f0a;
+}
+
+.swatch[data-swatch='netflix'] {
+  --swatch: #e50914;
+}
+
+.swatch[data-swatch='spotify'] {
+  --swatch: #1db954;
+}
+
+.swatch[data-swatch='vscode'] {
+  --swatch: #0e639c;
+}
+
+.swatch[data-swatch='claude'] {
+  --swatch: #d97757;
+}
+
+.source-link {
+  position: fixed;
+  left: 16px;
+  bottom: 18px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  opacity: 0.7;
+  text-decoration: none;
+  z-index: 2;
+}
+
+.source-link:hover,
+.source-link:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .calculator {
@@ -470,5 +518,15 @@ body {
   }
   .expression[data-complete] {
     --expression-scale: 2.73; /* 3rem / 1.1rem */
+  }
+}
+
+/* On phones the keypad reaches the bottom edge; keep it clear of the fixed row. */
+@media (max-width: 599px) {
+  .calculator {
+    padding-bottom: 60px;
+  }
+  .history-panel {
+    bottom: 60px;
   }
 }

@@ -4,7 +4,6 @@ import { useKeyboard } from '../calculator/useKeyboard'
 import { useOperations } from '../calculator/useOperations'
 import { HistoryPanel } from '../history/HistoryPanel'
 import { useHistory } from '../history/useHistory'
-import { ThemePicker } from '../theme/ThemePicker'
 import { Display } from './Display'
 import { ExpressionLine } from './ExpressionLine'
 import { Keypad } from './Keypad'
@@ -31,7 +30,6 @@ export function Calculator() {
         >
           History
         </button>
-        <ThemePicker />
       </div>
       <ExpressionLine text={expression} complete={complete} />
       {/* The attribute stays off while a chain is still computing, so the fade plays once on the final result. */}

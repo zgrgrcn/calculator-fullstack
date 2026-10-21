@@ -511,8 +511,12 @@ network failure in the display.
 `src/theme/themes.ts` names five themes (`ios` default, `netflix`,
 `spotify`, `vscode`, `claude`), reads and stores the choice in
 `localStorage` under `calculator.theme`, and applies it as `data-theme` on
-the document. `useTheme` owns the choice; `ThemePicker` is a labelled
-`<select>` rendered above the expression line. Every look is CSS:
+the document. `useTheme` owns the choice; `ThemePicker` is a `radiogroup`
+of round swatches fixed in the bottom-right corner (since 2026-10-22; it
+started as a `<select>` above the expression line), each in its theme's
+accent colour from CSS keyed on `data-swatch`, with a ring on the active
+one. Phones get 60px of bottom padding so the keypad clears the fixed row,
+which also holds a small `source` link to the repository bottom-left. Every look is CSS:
 `:root[data-theme='…']` blocks in `index.css` redefine the same custom
 properties plus `--font`, so components hold no colours and no theme
 checks. The iOS look stays on `:root` with its `prefers-color-scheme` dark

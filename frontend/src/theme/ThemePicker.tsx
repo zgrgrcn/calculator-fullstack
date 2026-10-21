@@ -1,24 +1,28 @@
-import { THEMES, THEME_LABELS, isThemeName } from './themes'
+import { THEMES, THEME_LABELS } from './themes'
 import { useTheme } from './useTheme'
 
-/** Lists the themes by name; the look itself is entirely in CSS. */
+/**
+ * One round swatch per theme, fixed in the bottom-right corner. The swatch
+ * colours and the active ring live in CSS, keyed on data-swatch and
+ * aria-checked.
+ */
 export function ThemePicker() {
   const { theme, setTheme } = useTheme()
   return (
-    <label className="theme-picker">
-      <span>Theme</span>
-      <select
-        value={theme}
-        onChange={(event) => {
-          if (isThemeName(event.target.value)) setTheme(event.target.value)
-        }}
-      >
-        {THEMES.map((name) => (
-          <option key={name} value={name}>
-            {THEME_LABELS[name]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="theme-picker" role="radiogroup" aria-label="Theme">
+      {THEMES.map((name) => (
+        <button
+          key={name}
+          type="button"
+          role="radio"
+          className="swatch"
+          data-swatch={name}
+          aria-checked={theme === name}
+          aria-label={THEME_LABELS[name]}
+          title={THEME_LABELS[name]}
+          onClick={() => setTheme(name)}
+        />
+      ))}
+    </div>
   )
 }

@@ -235,3 +235,11 @@ On =, animate the expression: it shrinks and moves up into the small line, and t
 ```text
 Store each finished expression and its result in localStorage. A history button opens a panel listing "expression = result", newest first.
 ```
+
+## 22. Theme swatches and source link
+
+```text
+Replace the theme <select> with a row of round swatches, one per theme, showing that theme's accent colour. Place it at the bottom-right corner of the page, fixed, away from the keypad. Highlight the active one. Keep the existing behaviour: the choice persists in localStorage and the default follows the system preference. Update the theme test to click a swatch instead of changing a select.
+
+Add a "source" link to https://github.com/zgrgrcn/calculator-fullstack at the bottom-left corner, fixed, small and low-contrast, opening in a new tab.
+```

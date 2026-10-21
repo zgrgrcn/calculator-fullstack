@@ -10,24 +10,34 @@ describe('ThemePicker', () => {
     delete document.documentElement.dataset.theme
   })
 
-  it('sets the theme attribute and keeps the choice across a reload', async () => {
+  it('sets the theme attribute from a swatch and keeps the choice across a reload', async () => {
     const user = userEvent.setup()
     const firstLoad = render(<ThemePicker />)
     expect(document.documentElement.dataset.theme).toBe('ios')
-
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Theme' }),
-      'netflix',
+    expect(screen.getByRole('radio', { name: 'iOS' })).toHaveAttribute(
+      'aria-checked',
+      'true',
     )
+
+    await user.click(screen.getByRole('radio', { name: 'Netflix' }))
     expect(document.documentElement.dataset.theme).toBe('netflix')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('netflix')
+    expect(screen.getByRole('radio', { name: 'Netflix' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(screen.getByRole('radio', { name: 'iOS' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
 
     // A reload starts from a bare document with only localStorage intact.
     firstLoad.unmount()
     delete document.documentElement.dataset.theme
     render(<ThemePicker />)
-    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue(
-      'netflix',
+    expect(screen.getByRole('radio', { name: 'Netflix' })).toHaveAttribute(
+      'aria-checked',
+      'true',
     )
     expect(document.documentElement.dataset.theme).toBe('netflix')
   })
