@@ -26,7 +26,7 @@ available on `/api/v1/calculate`.
   that result, a broom clears the list, and Escape or a click outside closes it
 - Keys grow slightly and lighten for 120ms when pressed, by click or by
   keyboard; transform and background-color only, off under reduced motion
-- Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (default, follows the system light or dark preference), Netflix, Spotify, VS Code, Claude
+- Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (follows the system light or dark preference), Netflix, Spotify, VS Code, Claude; a first visit gets one at random and keeps it
 - Every backend response is JSON, including 404, 405, 413 and 500
 - Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
   96% on the frontend
@@ -63,14 +63,15 @@ fails.
 
 A row of round swatches fixed in the bottom-right corner, one per theme in
 that theme's accent colour with a ring on the active one, switches the look.
-The choice is stored in `localStorage` and applied as a `data-theme`
-attribute on the document, so
+A first visit without a stored choice gets one of the five at random, stored
+at once so a reload keeps it; a pick replaces it. The choice is stored in
+`localStorage` and applied as a `data-theme` attribute on the document, so
 each theme is one block of CSS variables plus a font stack in
 [`frontend/src/index.css`](frontend/src/index.css); components contain no
 colours and no theme checks. Fonts come from the system; there are no logos,
 icons or bundled font files, and the product names are labels only.
 
-- **iOS** (default): references the iOS calculator; follows the system light or dark preference.
+- **iOS**: references the iOS calculator; follows the system light or dark preference.
 - **Netflix**: references Netflix; near-black surfaces, red accent, Helvetica-style type.
 - **Spotify**: references Spotify; charcoal surfaces, green accent, a geometric sans (Avenir where available).
 - **VS Code**: references Visual Studio Code's dark editor; editor greys, blue accent, monospace type.

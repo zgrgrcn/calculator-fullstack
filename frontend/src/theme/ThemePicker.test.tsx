@@ -12,6 +12,8 @@ describe('ThemePicker', () => {
 
   it('sets the theme attribute from a swatch and keeps the choice across a reload', async () => {
     const user = userEvent.setup()
+    // A stored choice is honoured; a first visit without one is random (see themes.test.ts).
+    localStorage.setItem(THEME_STORAGE_KEY, 'ios')
     const firstLoad = render(<ThemePicker />)
     expect(document.documentElement.dataset.theme).toBe('ios')
     expect(screen.getByRole('radio', { name: 'iOS' })).toHaveAttribute(

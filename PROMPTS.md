@@ -282,3 +282,9 @@ Clicking a result inserts it as the start of a new expression, so the user can k
 
 Close the dropdown when clicking anywhere outside it, and on Escape. Keep the existing keyboard access.
 ```
+
+## 27. Random theme on first visit
+
+```text
+On a first visit, when no theme is stored, pick one at random from the five themes instead of defaulting to iOS. Once the user chooses a theme, keep that choice as before. Reload must not re-roll a stored choice.
+```

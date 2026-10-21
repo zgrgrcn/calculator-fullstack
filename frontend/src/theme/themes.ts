@@ -10,7 +10,6 @@ export const THEME_LABELS: Record<ThemeName, string> = {
   claude: 'Claude',
 }
 
-export const DEFAULT_THEME: ThemeName = 'ios'
 export const THEME_STORAGE_KEY = 'calculator.theme'
 
 export function isThemeName(value: unknown): value is ThemeName {
@@ -19,14 +18,25 @@ export function isThemeName(value: unknown): value is ThemeName {
   )
 }
 
-/** The stored choice, or the default when storage is empty, invalid or unavailable. */
+/**
+ * The stored choice. On a first visit, when nothing valid is stored, one of
+ * the five themes is picked at random and stored at once, so a reload keeps
+ * it; a later pick by the user replaces it.
+ */
 export function readStoredTheme(): ThemeName {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY)
-    return isThemeName(stored) ? stored : DEFAULT_THEME
+    if (isThemeName(stored)) return stored
   } catch {
-    return DEFAULT_THEME
+    // Storage unavailable: fall through to a random theme for this page.
   }
+  const theme = randomTheme()
+  storeTheme(theme)
+  return theme
+}
+
+export function randomTheme(): ThemeName {
+  return THEMES[Math.floor(Math.random() * THEMES.length)]
 }
 
 export function storeTheme(theme: ThemeName): void {

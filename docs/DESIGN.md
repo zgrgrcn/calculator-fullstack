@@ -795,3 +795,10 @@ text) and closes the dropdown. Clear and Close are icon buttons (broom, ×)
 with `aria-label` and tooltips. The dropdown closes on Escape and on any
 pointer-down outside the anchor; the clock button toggles it. The
 calculator's keyboard handling stays disabled while it is open.
+
+## 20. Random first-visit theme (2026-10-22)
+
+`readStoredTheme` no longer defaults to iOS: when nothing valid is stored it
+picks one of the five themes with `Math.random`, stores it immediately and
+returns it, so a reload never re-rolls; a swatch pick replaces it as before.
+iOS itself still follows the system light or dark preference when chosen.
