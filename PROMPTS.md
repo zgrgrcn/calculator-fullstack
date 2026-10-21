@@ -270,3 +270,15 @@ Wrap the display and the keypad in one panel: a rounded rectangle with a subtle 
 3. Put the history button inside the calculator panel, at the top-left of the display, opposite the expression. Use a clock icon, an inline SVG, with an aria-label of "History" and a tooltip. Keep it the same visual weight as the expression text so it does not compete with the result.
 4. On press, a key should grow slightly and lighten, then settle back, instead of shrinking. About 120ms, transform and background-color only, so it paints nothing outside the key. It must also play for keyboard input, not only for clicks. Respect prefers-reduced-motion.
 ```
+
+## 26. History dropdown
+
+```text
+Open the history as a dropdown directly under the history button, anchored to the top-left of the display, not as a panel rising from the bottom of the page. It lists "expression = result", newest first.
+
+Replace the Clear label with a broom icon and the Close label with an × icon, each an inline SVG with an aria-label and a tooltip.
+
+Clicking a result inserts it as the start of a new expression, so the user can keep calculating from it, and closes the dropdown.
+
+Close the dropdown when clicking anywhere outside it, and on Escape. Keep the existing keyboard access.
+```

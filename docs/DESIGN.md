@@ -783,3 +783,15 @@ uses the page background, so they stay visible on the panel.
   `keyId` for clicks and keyboard alike; the count's parity picks one of two
   identical animations so a repeated key replays. `prefers-reduced-motion`
   disables it. The old `:active` shrink is gone.
+
+## 19. History dropdown (2026-10-22)
+
+The history opens as `HistoryDropdown`, absolutely positioned under the
+clock button inside a relative `.history-anchor`, over the display, instead
+of a sheet at the bottom. Rows are buttons: choosing one dispatches the new
+reducer action `insert`, which starts a new expression from the entry's
+exact stored `value` (older entries without a value fall back to parsing the
+text) and closes the dropdown. Clear and Close are icon buttons (broom, ×)
+with `aria-label` and tooltips. The dropdown closes on Escape and on any
+pointer-down outside the anchor; the clock button toggles it. The
+calculator's keyboard handling stays disabled while it is open.

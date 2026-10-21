@@ -16,6 +16,8 @@ export interface FinishedEvaluation {
   expression: string
   /** The result as shown. */
   result: string
+  /** The exact result, for continuing from it later. */
+  value: number
 }
 
 interface Options {
@@ -48,6 +50,7 @@ export function useCalculator({ client = evaluate, onResult }: Options = {}) {
         onResultRef.current?.({
           expression: formatExpression({ tokens: request.tokens, entry: null }),
           result: formatNumber(value),
+          value,
         })
       },
       (err: unknown) => {
@@ -59,6 +62,10 @@ export function useCalculator({ client = evaluate, onResult }: Options = {}) {
   }, [request, client])
 
   const press = useCallback((key: Key) => dispatch({ type: 'key', key }), [])
+  const insert = useCallback(
+    (value: number) => dispatch({ type: 'insert', value }),
+    [],
+  )
 
   return {
     display: mainText(state),
@@ -66,6 +73,7 @@ export function useCalculator({ client = evaluate, onResult }: Options = {}) {
     complete: isComplete(state.tokens),
     status: state.status,
     press,
+    insert,
   }
 }
 

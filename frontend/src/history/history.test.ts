@@ -15,6 +15,7 @@ describe('history storage', () => {
     const entries = Array.from({ length: HISTORY_LIMIT + 5 }, (_, i) => ({
       expression: `${i} + 1`,
       result: String(i + 1),
+      value: i + 1,
       at: i,
     }))
     writeHistory(entries)
@@ -35,6 +36,8 @@ describe('history storage', () => {
         'x',
       ]),
     )
-    expect(readHistory()).toEqual([{ expression: '1 + 1', result: '2', at: 1 }])
+    expect(readHistory()).toEqual([
+      { expression: '1 + 1', result: '2', value: 2, at: 1 },
+    ])
   })
 })

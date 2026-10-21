@@ -301,7 +301,7 @@ describe('expression line', () => {
 })
 
 describe('history', () => {
-  it('stores finished expressions and lists them newest first in the panel', async () => {
+  it('lists finished expressions newest first in a dropdown, inserts a clicked result, and closes on outside click, Escape and the × icon', async () => {
     localStorage.removeItem('calculator.history')
     fakeBackend()
     const user = userEvent.setup()
@@ -322,23 +322,47 @@ describe('history', () => {
       JSON.parse(localStorage.getItem('calculator.history') ?? '[]'),
     ).toHaveLength(2)
 
-    // Escape closes the panel without clearing the calculator.
+    // Escape closes the dropdown without clearing the calculator.
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(display().textContent).toBe('8')
 
-    // The list survives a reload and can be cleared.
+    // A click outside closes it too.
+    await user.click(button('History'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await user.click(display())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    // Clicking a result inserts it as the start of a new expression and closes the dropdown.
+    await user.click(button('History'))
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: '12 + 3 = 15',
+      }),
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(display().textContent).toBe('15')
+    await tap(user, 'Add', '5', 'Equals')
+    await waitFor(() => expect(display().textContent).toBe('20'))
+
+    // The list survives a reload and the broom clears it.
     firstLoad.unmount()
     render(<Calculator />)
     await user.click(button('History'))
     expect(
       within(screen.getByRole('dialog')).getAllByRole('listitem'),
-    ).toHaveLength(2)
+    ).toHaveLength(3)
     await user.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Clear' }),
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Clear history',
+      }),
     )
     expect(screen.getByText('No calculations yet')).toBeInTheDocument()
     expect(localStorage.getItem('calculator.history')).toBe('[]')
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }),
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
 

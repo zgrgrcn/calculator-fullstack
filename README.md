@@ -21,8 +21,9 @@ available on `/api/v1/calculate`.
 - Both lines have fixed heights and the `=` animation uses transform and
   opacity only, so pressing `=` repaints the display area and nothing else
 - History: every finished evaluation is kept in localStorage; the clock
-  icon at the top-left of the panel opens a list of `expression = result`,
-  newest first
+  icon at the top-left of the panel drops down a list of `expression =
+  result`, newest first; clicking an entry starts a new expression from
+  that result, a broom clears the list, and Escape or a click outside closes it
 - Keys grow slightly and lighten for 120ms when pressed, by click or by
   keyboard; transform and background-color only, off under reduced motion
 - Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (default, follows the system light or dark preference), Netflix, Spotify, VS Code, Claude

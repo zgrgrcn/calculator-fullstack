@@ -227,3 +227,32 @@ describe('clear and computing', () => {
     expect(reduce(s, { type: 'resolved', id: 42, value: 2 })).toBe(s)
   })
 })
+
+describe('insert', () => {
+  it('starts a new expression from an inserted value and continues from it', () => {
+    const inserted = reduce(resolved(press(s0, '2+3='), 5), {
+      type: 'insert',
+      value: 1 / 3,
+    })
+    expect(big(inserted)).toBe('0.333333333333')
+    expect(small(inserted)).toBe('Ans = 5')
+    expect(inserted.status).toBe('idle')
+    const next = press(inserted, '*3=')
+    expect(sent(next)).toEqual([1 / 3, 'multiply', 3])
+  })
+
+  it('replaces a half-typed expression and an error, but is ignored while computing', () => {
+    expect(big(reduce(press(s0, '12+'), { type: 'insert', value: 7 }))).toBe(
+      '7',
+    )
+    const s = press(s0, '1/0=')
+    const failed = reduce(s, {
+      type: 'failed',
+      id: s.request!.id,
+      message: 'Cannot divide by zero',
+    })
+    expect(big(reduce(failed, { type: 'insert', value: 7 }))).toBe('7')
+    const computing = press(s0, '1+1=')
+    expect(reduce(computing, { type: 'insert', value: 7 })).toBe(computing)
+  })
+})

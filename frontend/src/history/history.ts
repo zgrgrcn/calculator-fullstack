@@ -3,6 +3,8 @@ export interface HistoryEntry {
   expression: string
   /** The formatted result, for example "14". */
   result: string
+  /** The exact result, so a chosen entry continues with full precision. */
+  value: number
   /** Epoch milliseconds, newest first in storage. */
   at: number
 }
@@ -17,7 +19,7 @@ export function readHistory(): HistoryEntry[] {
     if (raw === null) return []
     const parsed: unknown = JSON.parse(raw)
     return Array.isArray(parsed)
-      ? parsed.filter(isEntry).slice(0, HISTORY_LIMIT)
+      ? parsed.filter(isStoredEntry).map(withValue).slice(0, HISTORY_LIMIT)
       : []
   } catch {
     return []
@@ -35,7 +37,9 @@ export function writeHistory(entries: readonly HistoryEntry[]): void {
   }
 }
 
-function isEntry(value: unknown): value is HistoryEntry {
+type StoredEntry = Omit<HistoryEntry, 'value'> & { value?: unknown }
+
+function isStoredEntry(value: unknown): value is StoredEntry {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Record<string, unknown>
   return (
@@ -43,4 +47,12 @@ function isEntry(value: unknown): value is HistoryEntry {
     typeof record.result === 'string' &&
     typeof record.at === 'number'
   )
+}
+
+// Entries written before the value was stored get it back from the text.
+function withValue(entry: StoredEntry): HistoryEntry {
+  return {
+    ...entry,
+    value: typeof entry.value === 'number' ? entry.value : Number(entry.result),
+  }
 }

@@ -36,6 +36,8 @@ export type Action =
   | { type: 'key'; key: Key }
   | { type: 'resolved'; id: number; value: number }
   | { type: 'failed'; id: number; message: string }
+  /** Start a new expression from a value chosen elsewhere, such as a history entry. */
+  | { type: 'insert'; value: number }
 
 export type Status = 'idle' | 'computing' | 'error'
 

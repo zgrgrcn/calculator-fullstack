@@ -37,6 +37,21 @@ export function reduce(state: State, action: Action): State {
       return onResolved(state, action.id, action.value)
     case 'failed':
       return onFailed(state, action.id, action.message)
+    case 'insert':
+      return onInsert(state, action.value)
+  }
+}
+
+// A value picked from the history becomes the first operand of a new
+// expression; the answer line and the request counter are kept.
+function onInsert(state: State, value: number): State {
+  if (state.status === 'computing') return state
+  return {
+    ...state,
+    tokens: [numberToken(value)],
+    entry: null,
+    status: 'idle',
+    error: null,
   }
 }
 
