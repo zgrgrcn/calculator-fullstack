@@ -19,7 +19,7 @@ export function ThemePicker() {
           data-swatch={name}
           aria-checked={theme === name}
           aria-label={THEME_LABELS[name]}
-          title={THEME_LABELS[name]}
+          data-tooltip={THEME_LABELS[name]}
           onClick={() => setTheme(name)}
         />
       ))}

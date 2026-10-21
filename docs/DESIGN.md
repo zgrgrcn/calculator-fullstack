@@ -766,3 +766,20 @@ unchanged 400px-wide column. The History button above it, the theme
 swatches and the source link stay outside on the page background. The
 backend alert and the history overlay got the same border, and the alert
 uses the page background, so they stay visible on the panel.
+
+## 18. Icons, tooltips and key press feedback (2026-10-22)
+
+- The source link is the GitHub mark as an inline SVG, `aria-label` and
+  tooltip "Source on GitHub", still fixed bottom-left and opening a new tab.
+- Tooltips are CSS: a `[data-tooltip]::after` pseudo-element that fades in
+  on `:hover` and on `:focus-visible`, so keyboard users see the theme names
+  on the swatches too; placement overrides keep them inside the viewport.
+- The history control is a clock icon button inside the panel's top row,
+  left of the expression line, in the expression's muted colour, with
+  `aria-label` and tooltip "History".
+- Key press feedback: the pressed key grows to 1.06 and lightens
+  (`color-mix` of its `--key-bg` with white), then settles, over 120ms on
+  transform and background-color only. `Calculator` counts presses per
+  `keyId` for clicks and keyboard alike; the count's parity picks one of two
+  identical animations so a repeated key replays. `prefers-reduced-motion`
+  disables it. The old `:active` shrink is gone.

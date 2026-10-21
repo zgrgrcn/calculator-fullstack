@@ -261,3 +261,12 @@ Confirm with paint flashing afterwards: after the fix, = should repaint only the
 ```text
 Wrap the display and the keypad in one panel: a rounded rectangle with a subtle border and the panel background, padded, centred, max-width unchanged. The history button, theme swatches and the source link stay outside it. The page background stays as it is, so the panel reads as the calculator sitting on it.
 ```
+
+## 25. GitHub mark, swatch tooltips, clock history button, key press feedback
+
+```text
+1. Replace the "source" text link with the GitHub mark, an inline SVG, same corner and same link. Keep it small and low-contrast, and give it an aria-label of "Source on GitHub" plus a tooltip. It still opens in a new tab.
+2. Show the theme name when a swatch is hovered or focused. A CSS tooltip is enough, no library. Keyboard focus must reveal it too, not only hover.
+3. Put the history button inside the calculator panel, at the top-left of the display, opposite the expression. Use a clock icon, an inline SVG, with an aria-label of "History" and a tooltip. Keep it the same visual weight as the expression text so it does not compete with the result.
+4. On press, a key should grow slightly and lighten, then settle back, instead of shrinking. About 120ms, transform and background-color only, so it paints nothing outside the key. It must also play for keyboard input, not only for clicks. Respect prefers-reduced-motion.
+```

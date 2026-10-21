@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useCalculator } from '../calculator/useCalculator'
 import { useKeyboard } from '../calculator/useKeyboard'
 import { useOperations } from '../calculator/useOperations'
+import type { Key as CalculatorKey } from '../calculator/types'
 import { HistoryPanel } from '../history/HistoryPanel'
 import { useHistory } from '../history/useHistory'
 import { Display } from './Display'
 import { ExpressionLine } from './ExpressionLine'
 import { Keypad } from './Keypad'
+import { keyId } from './keys'
 
 export function Calculator() {
   const history = useHistory()
@@ -15,24 +17,56 @@ export function Calculator() {
     onResult: history.add,
   })
   const ops = useOperations()
+
+  // Every press, from a click or the keyboard, bumps the key's count; the
+  // count's parity restarts the key's CSS press animation.
+  const [pressCounts, setPressCounts] = useState<
+    Readonly<Record<string, number>>
+  >({})
+  const pressWithFeedback = useCallback(
+    (key: CalculatorKey) => {
+      const id = keyId(key)
+      setPressCounts((previous) => ({
+        ...previous,
+        [id]: (previous[id] ?? 0) + 1,
+      }))
+      press(key)
+    },
+    [press],
+  )
   // While the history panel is open, keys belong to it (Escape closes it).
-  useKeyboard(press, !historyOpen)
+  useKeyboard(pressWithFeedback, !historyOpen)
 
   return (
     <main className="calculator">
-      <div className="toolbar">
-        <button
-          type="button"
-          className="history-button"
-          onClick={() => setHistoryOpen(true)}
-          aria-haspopup="dialog"
-          aria-expanded={historyOpen}
-        >
-          History
-        </button>
-      </div>
       <div className="panel">
-        <ExpressionLine text={expression} complete={complete} />
+        <div className="panel-top">
+          <button
+            type="button"
+            className="history-button"
+            onClick={() => setHistoryOpen(true)}
+            aria-label="History"
+            data-tooltip="History"
+            aria-haspopup="dialog"
+            aria-expanded={historyOpen}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+          </button>
+          <ExpressionLine text={expression} complete={complete} />
+        </div>
         {/* The attribute stays off while a chain is still computing, so the fade plays once on the final result. */}
         <Display
           text={display}
@@ -48,9 +82,10 @@ export function Calculator() {
           </p>
         )}
         <Keypad
-          onPress={press}
+          onPress={pressWithFeedback}
           busy={status === 'computing'}
           supported={ops.supported}
+          pressCounts={pressCounts}
         />
       </div>
       {historyOpen && (

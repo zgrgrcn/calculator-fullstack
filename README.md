@@ -20,8 +20,11 @@ available on `/api/v1/calculate`.
   or the last answer (`Ans = 14`) while the next one is typed
 - Both lines have fixed heights and the `=` animation uses transform and
   opacity only, so pressing `=` repaints the display area and nothing else
-- History: every finished evaluation is kept in localStorage; a History
-  button opens a panel listing `expression = result`, newest first
+- History: every finished evaluation is kept in localStorage; the clock
+  icon at the top-left of the panel opens a list of `expression = result`,
+  newest first
+- Keys grow slightly and lighten for 120ms when pressed, by click or by
+  keyboard; transform and background-color only, off under reduced motion
 - Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (default, follows the system light or dark preference), Netflix, Spotify, VS Code, Claude
 - Every backend response is JSON, including 404, 405, 413 and 500
 - Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
@@ -72,8 +75,9 @@ icons or bundled font files, and the product names are labels only.
 - **VS Code**: references Visual Studio Code's dark editor; editor greys, blue accent, monospace type.
 - **Claude**: references Claude by Anthropic; warm cream surfaces, terracotta accent, a serif stack.
 
-A small low-contrast `source` link fixed in the bottom-left corner opens this
-repository in a new tab.
+Hovering or focusing a swatch shows the theme name in a CSS tooltip. A small
+low-contrast GitHub mark fixed in the bottom-left corner (`Source on GitHub`)
+opens this repository in a new tab.
 
 ## Quick start with Docker
 

@@ -341,3 +341,20 @@ describe('history', () => {
     expect(localStorage.getItem('calculator.history')).toBe('[]')
   })
 })
+
+describe('key press feedback', () => {
+  it('marks the pressed key for the CSS animation on clicks and on keyboard input, alternating so repeats replay', async () => {
+    fakeBackend()
+    const user = userEvent.setup()
+    render(<Calculator />)
+    expect(button('7')).not.toHaveAttribute('data-pressed')
+    await user.keyboard('7')
+    expect(button('7')).toHaveAttribute('data-pressed', '1')
+    await user.keyboard('7')
+    expect(button('7')).toHaveAttribute('data-pressed', '0')
+    await user.click(button('Add'))
+    expect(button('Add')).toHaveAttribute('data-pressed', '1')
+    expect(button('7')).toHaveAttribute('data-pressed', '0')
+    expect(display().textContent).toBe('77 +')
+  })
+})

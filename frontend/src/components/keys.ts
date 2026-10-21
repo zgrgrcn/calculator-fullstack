@@ -113,3 +113,16 @@ export const KEY_LAYOUT: KeyDef[] = [
     shortcut: '.',
   },
 ]
+
+/** Stable id for a key, used to count presses per key. */
+export function keyId(key: Key): string {
+  switch (key.type) {
+    case 'digit':
+      return `digit:${key.value}`
+    case 'operator':
+    case 'unary':
+      return `${key.type}:${key.op}`
+    default:
+      return key.type
+  }
+}

@@ -7,6 +7,8 @@ interface Props {
   disabled: boolean
   /** The backend does not offer this operation: dimmed as well as disabled. */
   unsupported?: boolean
+  /** How often this key has been pressed; its parity restarts the press animation. */
+  pressCount?: number
   title?: string
   onPress: (key: CalculatorKey) => void
 }
@@ -15,6 +17,7 @@ export function Key({
   def,
   disabled,
   unsupported = false,
+  pressCount = 0,
   title,
   onPress,
 }: Props) {
@@ -37,6 +40,7 @@ export function Key({
       title={title ?? (def.shortcut ? `Shortcut: ${def.shortcut}` : undefined)}
       disabled={disabled}
       data-unsupported={unsupported || undefined}
+      data-pressed={pressCount > 0 ? pressCount % 2 : undefined}
       style={style}
       onClick={() => onPress(def.key)}
     >

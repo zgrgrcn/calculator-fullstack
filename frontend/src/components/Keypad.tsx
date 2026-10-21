@@ -1,7 +1,7 @@
 import type { OperationName } from '../api/types'
 import type { Key as CalculatorKey } from '../calculator/types'
 import { Key } from './Key'
-import { KEY_LAYOUT } from './keys'
+import { KEY_LAYOUT, keyId } from './keys'
 import type { KeyDef } from './keys'
 
 interface Props {
@@ -10,9 +10,11 @@ interface Props {
   busy: boolean
   /** Operations the backend advertises; null until the handshake answers. */
   supported: ReadonlySet<OperationName> | null
+  /** Press counts per keyId, for the press animation. */
+  pressCounts: Readonly<Record<string, number>>
 }
 
-export function Keypad({ onPress, busy, supported }: Props) {
+export function Keypad({ onPress, busy, supported, pressCounts }: Props) {
   return (
     <div className="keypad" aria-busy={busy}>
       {KEY_LAYOUT.map((def) => {
@@ -23,6 +25,7 @@ export function Keypad({ onPress, busy, supported }: Props) {
             def={def}
             disabled={(busy && def.key.type !== 'clear') || unsupported}
             unsupported={unsupported}
+            pressCount={pressCounts[keyId(def.key)] ?? 0}
             title={unsupported ? 'Not supported by the backend' : undefined}
             onPress={onPress}
           />
