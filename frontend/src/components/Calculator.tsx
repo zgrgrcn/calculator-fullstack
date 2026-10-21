@@ -31,26 +31,28 @@ export function Calculator() {
           History
         </button>
       </div>
-      <ExpressionLine text={expression} complete={complete} />
-      {/* The attribute stays off while a chain is still computing, so the fade plays once on the final result. */}
-      <Display
-        text={display}
-        error={status === 'error'}
-        result={complete && status === 'idle'}
-      />
-      {ops.status === 'error' && (
-        <p className="backend-status" role="alert">
-          Backend unreachable
-          <button type="button" onClick={ops.reload}>
-            Retry
-          </button>
-        </p>
-      )}
-      <Keypad
-        onPress={press}
-        busy={status === 'computing'}
-        supported={ops.supported}
-      />
+      <div className="panel">
+        <ExpressionLine text={expression} complete={complete} />
+        {/* The attribute stays off while a chain is still computing, so the fade plays once on the final result. */}
+        <Display
+          text={display}
+          error={status === 'error'}
+          result={complete && status === 'idle'}
+        />
+        {ops.status === 'error' && (
+          <p className="backend-status" role="alert">
+            Backend unreachable
+            <button type="button" onClick={ops.reload}>
+              Retry
+            </button>
+          </p>
+        )}
+        <Keypad
+          onPress={press}
+          busy={status === 'computing'}
+          supported={ops.supported}
+        />
+      </div>
       {historyOpen && (
         <HistoryPanel
           entries={history.entries}

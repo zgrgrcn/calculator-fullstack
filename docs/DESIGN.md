@@ -756,3 +756,13 @@ opacity only, with `will-change` while they run; both lines have fixed
 heights (`1.5rem`, `4.5rem`), never wrap, and clip overflowing text at its
 start, so no text change can move the keypad. The keypad's position was
 already stable across the animation; it stays so.
+
+## 17. Panel (2026-10-22)
+
+The expression line, the display and the keypad sit inside one `.panel`:
+a 24px-radius rectangle with a 1px border at 12% of the text colour
+(`color-mix`) and the theme's `--panel` background, 16px padding, inside the
+unchanged 400px-wide column. The History button above it, the theme
+swatches and the source link stay outside on the page background. The
+backend alert and the history overlay got the same border, and the alert
+uses the page background, so they stay visible on the panel.

@@ -255,3 +255,9 @@ A transform and opacity animation should not paint at all. Find what reflows on 
 
 Confirm with paint flashing afterwards: after the fix, = should repaint only the display area. Keypad, history button and theme picker stay unpainted.
 ```
+
+## 24. Calculator panel
+
+```text
+Wrap the display and the keypad in one panel: a rounded rectangle with a subtle border and the panel background, padded, centred, max-width unchanged. The history button, theme swatches and the source link stay outside it. The page background stays as it is, so the panel reads as the calculator sitting on it.
+```
