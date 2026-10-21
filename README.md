@@ -245,7 +245,7 @@ uploaded as artifacts. Coverage on 2026-10-22 (`make coverage`):
 | Go `internal/api` | 94.6% | | |
 | Go `internal/expr` | 97.8% | | |
 | Go `cmd/server` | 90.2% | | `main` is one line calling the tested `realMain` |
-| Go total | 95.1% of the tested packages | | the gate's `./...` run also counts the untested `tools/mutate`, which is why the backend job is red; fixed with the test work |
+| Go total | 95.1% | | gate 90% over `./cmd/...` and `./internal/...`; `tools/mutate` has no tests and is excluded |
 | Frontend | 97.0% | 98.6% | branches 94.5%, functions 98.7%; 90% thresholds enforced |
 
 ### End-to-end tests

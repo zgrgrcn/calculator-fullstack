@@ -15,7 +15,7 @@ test-backend:
 test-frontend:
 	cd frontend && npm run typecheck && npm run lint && npm test
 coverage:        ## write backend/coverage.html and frontend/coverage/
-	cd backend && go test -race -covermode=atomic -coverprofile=coverage.out ./... && go tool cover -html=coverage.out -o coverage.html && go tool cover -func=coverage.out | tail -1
+	cd backend && go test -race -covermode=atomic -coverprofile=coverage.out ./cmd/... ./internal/... && go tool cover -html=coverage.out -o coverage.html && go tool cover -func=coverage.out | tail -1
 	cd frontend && npm run test:coverage
 lint:            ## formatting and static checks
 	cd backend && test -z "$$(gofmt -l .)" && go vet ./...

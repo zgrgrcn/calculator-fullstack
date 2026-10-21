@@ -211,3 +211,15 @@ Add POST /api/v1/evaluate, taking the token list and returning the result. Keep 
 ```text
 Leave the three commits on main. Build the evaluation model on top as its own commit; we fix the red backend job when we return to the tests.
 ```
+
+## 18. Push the evaluation model
+
+```text
+Push 5c8f9b9 to origin/main now; the demo stays on the old model until the coverage gate is fixed.
+```
+
+## 19. Fix the coverage gate scope
+
+```text
+Scope the backend coverage run to the tested packages now, as its own small commit, so CI goes green and the demo deploys.
+```

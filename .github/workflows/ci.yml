@@ -22,7 +22,8 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)"
       - run: go vet ./...
-      - run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      - name: Tests with coverage over the tested packages (tools/ has none)
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./cmd/... ./internal/...
       - name: Coverage gate (90% statements)
         run: |
           total=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
