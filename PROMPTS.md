@@ -139,3 +139,9 @@ I want changes to docs/DESIGN.md:
 ```text
 Three fixes in docs/DESIGN.md before we start. 1e999 is not a 400: encoding/json turns it into +Inf, so it fails as 422 INVALID_OPERAND via the non-finite operand check; fix section 6. Add operations() to the client and call it on mount, otherwise GET /operations is dead code and should not be in the cut list. And use "go 1.27" in go.mod, not 1.27.3.
 ```
+
+## 8. Spec approved
+
+```text
+Spec approved. Create the public GitHub repo, push, and write the implementation plan.
+```
