@@ -1,0 +1,39 @@
+# Deploy-ready stack: no host ports here. docker-compose.override.yml adds
+# them for local use and is picked up by `docker compose up` automatically.
+services:
+  backend:
+    build: ./backend
+    expose: ["8080"]
+    environment:
+      PORT: "8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/server", "-healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+      start_interval: 2s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  frontend:
+    build: ./frontend
+    expose: ["80"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+      start_interval: 2s
+    deploy:
+      resources:
+        limits:
+          memory: 64M

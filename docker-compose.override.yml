@@ -1,0 +1,6 @@
+# Local development only: publishes the stack on the host.
+services:
+  backend:
+    ports: ["8080:8080"]
+  frontend:
+    ports: ["3000:80"]
