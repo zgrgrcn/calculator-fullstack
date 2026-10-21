@@ -151,3 +151,9 @@ Spec approved. Create the public GitHub repo, push, and write the implementation
 ```text
 Plan approved. Execute the tasks inline here, in order, one commit each.
 ```
+
+## 10. Deployment go-ahead
+
+```text
+I saved a root-ability token at ~/.config/coolify/token (chmod 600). Run deploy/coolify-create.sh and finish Task 10.
+```
