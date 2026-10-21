@@ -16,6 +16,9 @@ Conventions:
   `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 - `PROMPTS.md` gets every user message appended verbatim, in the commit that
   follows it.
+- The template sets `verbatimModuleSyntax: true`, so every type-only import
+  must be written `import type { ... }` or `npm run typecheck` fails. The
+  snippets below omit imports; add them accordingly.
 - Facts verified while planning (2026-10-21): `npm create vite@latest -- --template react-ts`
   runs without prompts when stdin is `/dev/null` and yields Vite 8.3, React
   19.3, TypeScript 6.0 and oxlint 1.88; the Vitest 5 config in Task 1 was
@@ -120,7 +123,8 @@ run in parallel. Tasks 7–10 depend on both.
    `frontend/src/App.tsx`: temporary `export default function App() { return <h1>Calculator</h1> }`.
    `frontend/src/index.css`: empty for now.
 
-6. Root `Makefile` (tabs, not spaces):
+6. Root `Makefile` (recipe lines start with a real tab; write the file with
+   `printf` or check with `cat -A` that each recipe line starts with `^I`):
 
    ```makefile
    .PHONY: help backend frontend test test-backend test-frontend coverage lint docker-up docker-down
@@ -287,7 +291,8 @@ for `a < 0`. `Operations()` maps `order` through `registry` into `[]Spec`.
 | `{"operation":"add","operands":[1,2],"x":1}` | 400 | INVALID_REQUEST | unknown field "x" |
 | `{"operation":"add","operands":[1,2]} {}` | 400 | INVALID_REQUEST | body must contain a single JSON object |
 | `not json` | 400 | INVALID_REQUEST | invalid JSON body |
-| 1 MiB + 1 byte body | 413 | PAYLOAD_TOO_LARGE | |
+| `{"operation":"add","operands":[1,1,1,…]}` longer than 1 MiB | 413 | PAYLOAD_TOO_LARGE | |
+| a valid object followed by 1 MiB of spaces | 413 | PAYLOAD_TOO_LARGE | |
 
 - `GET /api/v1/calculate` → 405, `Allow: POST`, code `METHOD_NOT_ALLOWED`.
 - `GET /api/v1/operations` → 200, seven entries, first is
@@ -361,7 +366,9 @@ func route(mux *http.ServeMux, method, path string, fn http.HandlerFunc) {
 ```
 
 `calculate` decodes with `http.MaxBytesReader`, `DisallowUnknownFields`, and
-a second `Decode` that must return `io.EOF`. Decode error mapping, in order:
+a second `Decode` that must return `io.EOF`; both `Decode` calls run through
+the same error mapping, because a valid object padded past the limit trips
+`MaxBytesReader` only in the second. Mapping, in order:
 `*http.MaxBytesError` → 413; `*json.UnmarshalTypeError` → 400 with
 "operands must be numbers within float64 range" when `Field` starts with
 `operands`, otherwise "operation must be a string"; message starting with
@@ -516,8 +523,10 @@ async function send(url: string, init: RequestInit): Promise<unknown> {
   return body
 }
 
+// Name check rather than instanceof DOMException: jsdom and Node can hand
+// back an AbortError from a different realm.
 export function isAbortError(err: unknown): boolean {
-  return err instanceof DOMException && err.name === 'AbortError'
+  return err instanceof Error && err.name === 'AbortError'
 }
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null
@@ -719,7 +728,10 @@ export function toMessage(err: unknown): string {
 
 `useOperations.ts`: state `result: { supported: ReadonlySet<OperationName> } | { error: true } | null`
 plus an `attempt` counter; one effect keyed on `[client, attempt]` that
-aborts on cleanup; `reload` sets `result` to `null` and bumps `attempt`.
+aborts on cleanup and ignores a rejection that `isAbortError` (StrictMode
+aborts the first mount call; without this the alert would flash), setting
+`{ error: true }` for any other failure; `reload` sets `result` to `null`
+and bumps `attempt`.
 Returns `{ status, supported, reload }` where `status` is derived
 (`loading` while `result` is null).
 
@@ -745,7 +757,10 @@ shortcut, `disabled`, inline `gridColumn`/`gridRow` spans, class
 it (then `title` is "Not supported by the backend").
 
 `Display.tsx`: `<div role="status" aria-live="polite" className="display"
-data-length={text.length} data-error={error || undefined}>{text}</div>`.
+data-size={sizeFor(text)} data-error={error || undefined}>{text}</div>`,
+where `sizeFor` returns `normal` up to 9 characters, `small` up to 14 and
+`tiny` beyond; CSS attribute selectors cannot compare numbers, so the bucket
+is computed in the component.
 
 `Calculator.tsx`:
 
@@ -772,9 +787,8 @@ export function Calculator() {
 background, key colours (digit, function, operator, disabled), text and
 error; dark values under `@media (prefers-color-scheme: dark)`; body centres
 `.calculator` with `max-width: 400px`, `padding: 16px`; `.display` is
-right-aligned, `font-size: 3rem`, with `[data-length="10"]`-style shrinking
-via `.display[data-length]` rules for lengths above 9 and above 14, and
-`[data-error]` in the error colour; `.keypad` is `display: grid;
+right-aligned, `font-size: 3rem`, smaller under `[data-size="small"]` and
+`[data-size="tiny"]`, and `[data-error]` in the error colour; `.keypad` is `display: grid;
 grid-template-columns: repeat(4, 1fr); gap: 12px`; `.key` has
 `aspect-ratio: 1; min-height: 48px; border-radius: 50%` (spans use
 `border-radius: 999px`), large font, `:disabled` dims.
@@ -1077,6 +1091,11 @@ Steps:
 
 1. Read the server UUID with the Coolify MCP `list_servers` tool and confirm
    no project named `calculator-fullstack` exists with `list_projects`.
+   Check the server's engine with
+   `ssh oracle-server docker version --format '{{.Server.Version}}'`:
+   `start_interval` in the compose healthchecks needs Docker 25 or newer;
+   if the server is older, drop it and raise `start_period` to 30s before
+   deploying.
 2. Create the project and the application through the API, reading the token
    with `$(cat ~/.config/coolify/token)` and never printing it:
    `POST /api/v1/projects` `{name: "calculator-fullstack"}`, then
