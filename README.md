@@ -14,6 +14,7 @@ JSON.
   (`2 ^ 3 ^ 2 = 512`)
 - Keyboard support, responsive layout from 320px up, light and dark themes
 - Expression line above the display showing exactly what was pressed, as on iOS
+- Five themes switched from a small control and remembered in localStorage: iOS (default, follows the system light or dark preference), Netflix, Spotify, VS Code, Claude
 - Every backend response is JSON, including 404, 405, 413 and 500
 - Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
   96% on the frontend
@@ -44,6 +45,21 @@ On start the frontend calls `GET /api/v1/operations` and enables only the
 operation keys the backend advertises; the call doubles as a connectivity
 check and shows a "Backend unreachable" line with a Retry button when it
 fails.
+
+## Themes
+
+The Theme control above the display switches the look. The choice is stored
+in `localStorage` and applied as a `data-theme` attribute on the document, so
+each theme is one block of CSS variables plus a font stack in
+[`frontend/src/index.css`](frontend/src/index.css); components contain no
+colours and no theme checks. Fonts come from the system; there are no logos,
+icons or bundled font files, and the product names are labels only.
+
+- **iOS** (default): references the iOS calculator; follows the system light or dark preference.
+- **Netflix**: references Netflix; near-black surfaces, red accent, Helvetica-style type.
+- **Spotify**: references Spotify; charcoal surfaces, green accent, a geometric sans (Avenir where available).
+- **VS Code**: references Visual Studio Code's dark editor; editor greys, blue accent, monospace type.
+- **Claude**: references Claude by Anthropic; warm cream surfaces, terracotta accent, a serif stack.
 
 ## Quick start with Docker
 

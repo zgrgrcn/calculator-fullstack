@@ -12,6 +12,7 @@
   --operator-text: #ffffff;
   --error: #d70015;
   --focus: #0a84ff;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -41,12 +42,107 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--font);
+}
+
+/* Named themes: one block of the same variables plus a font stack each,
+   selected by data-theme on the document. The default (no attribute or
+   data-theme="ios") is the iOS look above, following the system scheme.
+   Product names are labels only; no logos, icons or bundled fonts. */
+:root[data-theme='netflix'] {
+  color-scheme: dark;
+  --bg: #141414;
+  --panel: #1f1f1f;
+  --text: #ffffff;
+  --muted: #b3b3b3;
+  --digit: #2b2b2b;
+  --digit-text: #ffffff;
+  --function: #404040;
+  --function-text: #ffffff;
+  --operator: #e50914;
+  --operator-text: #ffffff;
+  --error: #ff7b72;
+  --focus: #e5e5e5;
+  --font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+:root[data-theme='spotify'] {
+  color-scheme: dark;
+  --bg: #121212;
+  --panel: #181818;
+  --text: #ffffff;
+  --muted: #a7a7a7;
+  --digit: #282828;
+  --digit-text: #ffffff;
+  --function: #3e3e3e;
+  --function-text: #ffffff;
+  --operator: #1db954;
+  --operator-text: #000000;
+  --error: #f15e6c;
+  --focus: #1ed760;
+  --font:
+    'Avenir Next', Avenir, 'Century Gothic', 'Segoe UI', Roboto, sans-serif;
+}
+
+:root[data-theme='vscode'] {
+  color-scheme: dark;
+  --bg: #1e1e1e;
+  --panel: #252526;
+  --text: #d4d4d4;
+  --muted: #858585;
+  --digit: #2d2d30;
+  --digit-text: #d4d4d4;
+  --function: #3c3c3c;
+  --function-text: #cccccc;
+  --operator: #0e639c;
+  --operator-text: #ffffff;
+  --error: #f14c4c;
+  --focus: #007fd4;
+  --font:
+    'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+}
+
+:root[data-theme='claude'] {
+  color-scheme: light;
+  --bg: #f4f1ea;
+  --panel: #ffffff;
+  --text: #141413;
+  --muted: #6b6a66;
+  --digit: #e8e4db;
+  --digit-text: #141413;
+  --function: #d8d3c7;
+  --function-text: #141413;
+  --operator: #d97757;
+  --operator-text: #ffffff;
+  --error: #b3261e;
+  --focus: #d97757;
+  --font:
+    'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
+    'Times New Roman', serif;
+}
+
+.theme-picker {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.theme-picker select {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--function);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.theme-picker select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .calculator {

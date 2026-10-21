@@ -177,3 +177,11 @@ The keypad glyphs look thin and small next to the display. Bump the display weig
 do this task with sub agent, use opus 5.5 high.
 When = is pressed the result just replaces the number. Animate it: the expression line slides up and shrinks into place, and the result fades in, like the calculator in the screenshot. About 150ms, CSS only. Respect prefers-reduced-motion.
 ```
+
+## 14. Themes
+
+```text
+Keep the iOS theme as the default, light and dark following the system preference. Add four named themes: Netflix, Spotify, VS Code, and Claude. Each is a block of the existing CSS variables plus a font stack that evokes the product, using fonts already available on the system. Use the product name only as the theme label. No logos, no icons, no bundled font files.
+
+No color values and no theme checks inside components. A small control lists the themes by name, the choice persists in localStorage, and the default is iOS following the system preference. Add one test: selecting a theme sets the attribute and the choice survives a reload. In the README, one line per theme naming the product it references.
+```

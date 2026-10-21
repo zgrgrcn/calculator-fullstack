@@ -506,6 +506,18 @@ entry rules above (digit limit, one decimal point, no leading zeros, no
 operator without an operand) plus surfacing every backend error message and
 network failure in the display.
 
+### 7.8 Themes (added 2026-10-22)
+
+`src/theme/themes.ts` names five themes (`ios` default, `netflix`,
+`spotify`, `vscode`, `claude`), reads and stores the choice in
+`localStorage` under `calculator.theme`, and applies it as `data-theme` on
+the document. `useTheme` owns the choice; `ThemePicker` is a labelled
+`<select>` rendered above the expression line. Every look is CSS:
+`:root[data-theme='…']` blocks in `index.css` redefine the same custom
+properties plus `--font`, so components hold no colours and no theme
+checks. The iOS look stays on `:root` with its `prefers-color-scheme` dark
+block. One test covers selecting a theme and surviving a reload.
+
 ## 8. Testing
 
 Backend (`go test -race -cover ./...`, target ≥ 90% statements):

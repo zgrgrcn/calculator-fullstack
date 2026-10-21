@@ -4,6 +4,7 @@ import { useOperations } from '../calculator/useOperations'
 import { Display } from './Display'
 import { ExpressionLine } from './ExpressionLine'
 import { Keypad } from './Keypad'
+import { ThemePicker } from '../theme/ThemePicker'
 
 export function Calculator() {
   const { display, expression, status, complete, press } = useCalculator()
@@ -12,6 +13,7 @@ export function Calculator() {
 
   return (
     <main className="calculator">
+      <ThemePicker />
       <ExpressionLine text={expression} complete={complete} />
       <Display
         text={display}
