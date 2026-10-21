@@ -18,6 +18,8 @@ available on `/api/v1/calculate`.
 - Keyboard support, responsive layout from 320px up, light and dark themes
 - Small line above the display with the evaluated expression (`2 + 3 × 4 =`)
   or the last answer (`Ans = 14`) while the next one is typed
+- Both lines have fixed heights and the `=` animation uses transform and
+  opacity only, so pressing `=` repaints the display area and nothing else
 - History: every finished evaluation is kept in localStorage; a History
   button opens a panel listing `expression = result`, newest first
 - Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (default, follows the system light or dark preference), Netflix, Spotify, VS Code, Claude

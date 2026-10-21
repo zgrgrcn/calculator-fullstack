@@ -17,7 +17,9 @@ export function Display({ text, error, result }: Props) {
       data-error={error || undefined}
       data-result={result || undefined}
     >
-      {text}
+      <span className="line-text">
+        <bdi>{text}</bdi>
+      </span>
     </div>
   )
 }

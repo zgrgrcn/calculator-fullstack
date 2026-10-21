@@ -6,7 +6,7 @@ import type { KeyDef } from './keys'
 
 interface Props {
   onPress: (key: CalculatorKey) => void
-  /** A request is in flight: every key but AC is disabled. */
+  /** A request is in flight: every key but AC is disabled, with no visual change, so nothing repaints. */
   busy: boolean
   /** Operations the backend advertises; null until the handshake answers. */
   supported: ReadonlySet<OperationName> | null
@@ -22,6 +22,7 @@ export function Keypad({ onPress, busy, supported }: Props) {
             key={def.aria}
             def={def}
             disabled={(busy && def.key.type !== 'clear') || unsupported}
+            unsupported={unsupported}
             title={unsupported ? 'Not supported by the backend' : undefined}
             onPress={onPress}
           />

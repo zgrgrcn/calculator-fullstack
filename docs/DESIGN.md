@@ -742,3 +742,17 @@ answer is accepted. `HistoryPanel` is a `role="dialog"` listing
 calculator's keyboard handling is disabled while it is open so Escape does
 not also clear. The toolbar above the expression line holds the History
 button and the theme picker.
+
+## 16. Paint on equals (2026-10-22)
+
+Paint flashing showed the whole keypad repainting on `=`. Measured cause:
+the busy state set `disabled` on every key and the stylesheet dimmed
+disabled keys, so all 22 keys repainted when the request started and again
+when it resolved; the keyframes also animated `color`, which kept the small
+line's animation on the main thread. Fixes: only keys the backend does not
+offer are dimmed (`data-unsupported`); busy keys stay `disabled` for
+semantics with no visual change; the keyframes animate transform and
+opacity only, with `will-change` while they run; both lines have fixed
+heights (`1.5rem`, `4.5rem`), never wrap, and clip overflowing text at its
+start, so no text change can move the keypad. The keypad's position was
+already stable across the animation; it stays so.

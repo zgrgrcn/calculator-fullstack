@@ -312,20 +312,36 @@ body {
   }
 }
 
+/* Both lines have fixed heights and never wrap, so changing their text can
+   not move anything below them. Overflowing text is clipped at its start
+   (the rtl container with an ltr bdi inside puts the ellipsis on the left),
+   keeping the most recent input visible. */
 .expression {
-  min-height: 1.5rem;
+  height: 1.5rem;
   margin: 0;
   padding: 0 8px;
   color: var(--muted);
   font-size: 1.1rem;
   line-height: 1.5rem;
-  text-align: right;
-  overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
 
+.line-text {
+  display: block;
+  max-width: 100%;
+  margin-left: auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl;
+}
+
+.display > .line-text {
+  min-width: 0;
+}
+
 .display {
-  min-height: 4.5rem;
+  height: 4.5rem;
   padding: 0 8px;
   display: flex;
   align-items: flex-end;
@@ -333,8 +349,6 @@ body {
   font-size: 3.5rem;
   font-weight: 400;
   line-height: 1.1;
-  text-align: right;
-  overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
 
@@ -364,6 +378,7 @@ body {
   ); /* display height plus the column gap */
   --expression-scale: 3.18; /* 3.5rem / 1.1rem */
   transform-origin: right bottom;
+  will-change: transform;
   animation: expression-into-place 200ms ease-out;
 }
 
@@ -376,18 +391,19 @@ body {
 }
 
 .display[data-result] {
+  will-change: opacity;
   animation: result-in 120ms ease-out 80ms backwards;
 }
 
+/* Transform and opacity only: both run on the compositor, so the animation
+   paints nothing. */
 @keyframes expression-into-place {
   from {
     transform: translateY(var(--expression-travel))
       scale(var(--expression-scale));
-    color: var(--text);
   }
   to {
     transform: none;
-    color: var(--muted);
   }
 }
 
@@ -489,7 +505,9 @@ body {
   filter: brightness(1.2);
 }
 
-.key:disabled {
+/* Only keys the backend does not offer look disabled. Keys disabled while a
+   request is in flight keep their look, so = never repaints the keypad. */
+.key[data-unsupported] {
   opacity: 0.45;
   cursor: not-allowed;
 }

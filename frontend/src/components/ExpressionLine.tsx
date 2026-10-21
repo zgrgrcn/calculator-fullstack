@@ -19,7 +19,9 @@ export function ExpressionLine({ text, complete }: Props) {
       data-size={sizeFor(text.replace(/ =$/, ''))}
       data-complete={complete || undefined}
     >
-      {text}
+      <span className="line-text">
+        <bdi>{text}</bdi>
+      </span>
     </p>
   )
 }

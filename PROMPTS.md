@@ -243,3 +243,15 @@ Replace the theme <select> with a row of round swatches, one per theme, showing 
 
 Add a "source" link to https://github.com/zgrgrcn/calculator-fullstack at the bottom-left corner, fixed, small and low-contrast, opening in a new tab.
 ```
+
+## 23. Paint flashing on equals
+
+```text
+'/Users/zgrgrcn/Desktop/Screen Recording 2026-10-22 at 01.30.24.mov'
+
+Paint flashing shows the bug precisely. Pressing a digit repaints only that key and the display, which is fine. Pressing = repaints the whole keypad and the display for the full 200ms, in stacked bands, so something is changing layout during the animation rather than only compositing.
+
+A transform and opacity animation should not paint at all. Find what reflows on =. The likely cause: the expression moves from large type in the main line to the small line, so the line's height changes and the keypad below it shifts. Fix it by keeping the display area a fixed height and animating the expression inside it, so the keypad never moves.
+
+Confirm with paint flashing afterwards: after the fix, = should repaint only the display area. Keypad, history button and theme picker stay unpainted.
+```
