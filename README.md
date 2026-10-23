@@ -10,41 +10,52 @@ request, which validates it, evaluates it with the usual precedence and
 answers in JSON. The frontend does no arithmetic. Single operations stay
 available on `/api/v1/calculate`.
 
-- Add, subtract, multiply, divide, power, square root, percentage
-- Evaluation model as in the Google calculator: the expression builds in
-  large type as keys are pressed, nothing is sent until `=`, then the backend
-  applies precedence (`2 + 3 × 4 = 14`) with right-associative power
-  (`2 ^ 3 ^ 2 = 512`) and postfix `%` and `√` (`196% × 5 = 9.8`)
-- Keyboard support, responsive layout from 320px up, light and dark themes
-- Small line above the display with the evaluated expression (`2 + 3 × 4 =`)
-  or the last answer (`Ans = 14`) while the next one is typed
-- Below the 375×667 baseline (320×568, 414×568, 667×375 and the like) the
-  keys shorten into pills sized from the viewport, and a phone held sideways
-  puts the display beside the keypad with the swatches in a column at the
-  right edge, so every key is on screen without scrolling and nothing covers
-  one; 375×667 and up are unchanged
-- Both lines have fixed heights and the `=` animation uses transform and
-  opacity only, so pressing `=` repaints the display area and nothing else
-- The main line picks the largest of seven font sizes at which the whole text
-  fits, measured in the browser rather than guessed from a character count,
-  so no result is ever clipped at 320px and up
-- History: every finished evaluation is kept in localStorage and shared
-  across tabs (a write merges with what other tabs saved, and their changes
-  show up without a reload); the clock
-  icon at the top-left of the panel drops down a list of `expression =
-result`, newest first; clicking an entry starts a new expression from
-  that result, a trash can clears the list, and Escape or a click outside closes it
-- Keys grow slightly and lighten for 120ms when pressed, by click or by
-  keyboard; transform and background-color only, off under reduced motion
-- Enter on a focused button or link outside the keypad activates it, like
-  Space; on the keypad or with nothing focused Enter evaluates
-- Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (follows the system light or dark preference), Netflix, Spotify, VS Code, Claude; a first visit gets one at random and keeps it
-- Every backend response is JSON, including 404, 405, 413 and 500; in the
-  compose stack nginx passes bodies up to 2 MB through so the backend's own
-  JSON 413 reaches the client, answers larger ones with the same JSON, and
-  sends no version (`server_tokens off`)
-- Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
-  96% on the frontend
+- Add, subtract, multiply, divide, power, square root and percentage. The
+  expression builds in large type as keys are pressed and nothing is sent
+  until `=`; then the backend applies precedence (`2 + 3 × 4 = 14`),
+  right-associative power (`2 ^ 3 ^ 2 = 512`) and postfix `%` and `√`
+  (`196% × 5 = 9.8`)
+- A small line above the display shows the evaluated expression or the last
+  answer (`Ans = 14`); the main line picks its font size by measuring, so no
+  result is clipped from 320px up
+- Keyboard input, five themes picked from swatches and remembered, and a
+  history of finished evaluations kept in localStorage and shared across tabs
+- Works from 320×568 and phones held sideways up to the desktop with every key
+  on screen and nothing covering one; animations use transform and opacity
+  only and stop under reduced motion
+- Every API response is JSON with one error envelope, and CI gates each deploy
+  on unit tests, coverage thresholds, 15 Playwright scenarios against the
+  compose stack and a mutation test
+
+## Quick start with Docker
+
+Requires Docker 25+ with Compose v2.
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost:3000. nginx serves the built frontend and proxies
+`/api/` to the backend container; the backend is also published on
+http://localhost:8080 for direct API calls. Both containers have healthchecks
+and memory limits (`docker compose ps` shows `healthy`).
+
+## Running the backend and frontend separately
+
+Requires Go 1.27 (any Go 1.21+ downloads it automatically through
+`GOTOOLCHAIN=auto`) and Node 24.
+
+```bash
+make setup      # npm ci in frontend/ and e2e/
+make backend    # Go API on http://localhost:8080
+make frontend   # Vite dev server on http://localhost:5173, proxies /api to the backend
+```
+
+Run the two in separate terminals. The dev proxy target can be changed with
+`VITE_API_PROXY_TARGET=http://host:port make frontend`. Other targets:
+`make test`, `make coverage`, `make lint`, `make help`.
+
+The backend reads one environment variable, `PORT` (default `8080`).
 
 ## Architecture
 
@@ -74,6 +85,34 @@ operation keys the backend advertises; the call doubles as a connectivity
 check and shows a "Backend unreachable" line with a Retry button when it
 fails.
 
+## Interface details
+
+- The expression line and the main display have fixed heights and never
+  wrap; overflowing input is clipped at its start so the newest keys stay
+  visible. The `=` animation moves the expression up into the small line and
+  fades the result in with transform and opacity only, so pressing `=`
+  repaints the display area and nothing else.
+- The main line is sized by measuring: `useFittedSize` applies each of seven
+  font sizes to the display and keeps the largest at which the text fits its
+  line, in every theme's font and at every width, and measures again when the
+  viewport or the theme changes. Only an over-long expression still clips.
+- History: the clock icon at the top-left of the panel drops down the list of
+  `expression = result`, newest first; clicking an entry starts a new
+  expression from that exact result, the trash can clears the list, and
+  Escape or a click outside closes it. Each tab's write merges with what the
+  other tabs saved, and their changes arrive through the storage event.
+- Keys grow slightly and lighten for 120ms when pressed, by click or by
+  keyboard, transform and background-color only, off under reduced motion.
+- Enter on a focused button or link outside the keypad activates it, like
+  Space; on the keypad or with nothing focused Enter evaluates.
+- Tooltips open after a short delay for mouse or pen hover and for keyboard
+  focus, never after a touch, and close the moment the pointer leaves or the
+  control is pressed; the `aria-label`s carry the same names.
+- Below the 375×667 baseline (320×568, 414×568, 667×375 and the like) the
+  keys shorten into pills sized from the viewport, and a phone held sideways
+  puts the display beside the keypad with the swatches in a column at the
+  right edge; 375×667 and up are unchanged.
+
 ## Themes
 
 A row of round swatches fixed in the bottom-right corner, one per theme in
@@ -92,41 +131,10 @@ icons or bundled font files, and the product names are labels only.
 - **VS Code**: references Visual Studio Code's dark editor; editor greys, blue accent, monospace type.
 - **Claude**: references Claude by Anthropic; warm cream surfaces, terracotta accent, a serif stack.
 
-Resting a mouse on a swatch, or focusing it from the keyboard, shows the theme
-name in a tooltip after a short delay; a tap never opens one, and it closes as
-soon as the pointer leaves or the swatch is pressed. A small low-contrast GitHub
-mark fixed in the bottom-left corner (`Source on GitHub`) opens this repository
-in a new tab.
-
-## Quick start with Docker
-
-Requires Docker 25+ with Compose v2.
-
-```bash
-docker compose up --build
-```
-
-Open http://localhost:3000. nginx serves the built frontend and proxies
-`/api/` to the backend container; the backend is also published on
-http://localhost:8080 for direct API calls. Both containers have healthchecks
-and memory limits (`docker compose ps` shows `healthy`).
-
-## Running the backend and frontend separately
-
-Requires Go 1.27 (any Go 1.21+ downloads it automatically through
-`GOTOOLCHAIN=auto`) and Node 24.
-
-```bash
-make setup      # npm ci in frontend/
-make backend    # Go API on http://localhost:8080
-make frontend   # Vite dev server on http://localhost:5173, proxies /api to the backend
-```
-
-Run the two in separate terminals. The dev proxy target can be changed with
-`VITE_API_PROXY_TARGET=http://host:port make frontend`. Other targets:
-`make test`, `make coverage`, `make lint`, `make help`.
-
-The backend reads one environment variable, `PORT` (default `8080`).
+Hovering a swatch with a mouse or focusing it from the keyboard shows the theme
+name in a tooltip (see Interface details). A small low-contrast GitHub mark
+fixed in the bottom-left corner (`Source on GitHub`) opens this repository in a
+new tab.
 
 ## API
 
@@ -202,14 +210,20 @@ digits for display. Integers are exact up to 2^53. Results that are NaN or
 infinite are rejected before encoding, so a successful response always
 carries a finite number.
 
+In the compose stack nginx passes request bodies up to 2 MB through, so the
+backend's own 413 reaches the client; above that nginx answers with the same
+JSON body, and `server_tokens off` keeps its version out of headers and error
+pages.
+
 ## Design decisions and assumptions
 
 1. **One request per expression.** Keys only build a token list; `=` posts
    it to `/api/v1/evaluate`, where `expr` applies precedence and delegates
    every step to `calc`, so the frontend does no arithmetic and the error
    vocabulary is shared with `/calculate`, which stays for single operations.
-   (Until 2026-10-22 the frontend evaluated chains step by step through
-   `/calculate`; the redesign followed a recording of the Google calculator.)
+   An earlier version evaluated chains step by step through `/calculate`; the
+   current model follows the Google calculator, where an operator key only
+   extends the expression.
 2. **Precedence and associativity**, now in the backend: `+ −` bind weaker
    than `× ÷`, which bind weaker than `^`; `^` is right-associative like
    scientific calculators; postfix unary binds tightest.
@@ -236,12 +250,28 @@ carries a finite number.
    because the image has no shell or curl. The compose file has no host
    ports; `docker-compose.override.yml` adds them for local use only.
 10. **History** is a localStorage list of `expression = result`, newest
-    first, capped at 50, fed by the hook once a result is accepted; the
-    reducer stays free of side effects. **Not built:** memory keys,
-    repeat-equals, authentication, rate limiting, server-side persistence.
+    first, capped at 50, fed by the hook once a result is accepted and merged
+    across tabs on every write; the reducer stays free of side effects.
+    **Not built:** memory keys and rate limiting; everything else that was
+    left out is listed below and under "What would come next".
 
 The full design is in [docs/DESIGN.md](docs/DESIGN.md) and the task plan in
 [docs/PLAN.md](docs/PLAN.md).
+
+## Deliberately left as is
+
+- **Repeat `=`.** A second `=` does nothing: the expression is complete and
+  there is no "last operation" to reapply.
+- **Operator replacement.** Typing `+` and then `×` replaces the pending
+  operator instead of raising an error, as phone calculators do.
+- **Delete.** Only Backspace is mapped; it removes the last digit, then the
+  last token. Delete has no separate meaning on a keypad.
+- **No paste.** Input is the keypad and single key presses; a pasted
+  expression would need its own parser and error vocabulary.
+- **Content-Type not checked.** The API parses every body as JSON whatever the
+  header says, so a plain `curl -d` works, as the examples above do.
+- **No CORS.** One origin by design (decision 5); the Chrome extension under
+  "What would come next" is where it would come back.
 
 ## Testing and coverage
 
@@ -262,16 +292,19 @@ bodies and the recover middleware.
 Frontend: the reducer (entry rules, append-only operators, postfix unary
 tokens, one request on `=`, continuing from the answer, failure and
 recovery, stale request ids), expression formatting, the API client (every
-error path and abort), and the `Calculator` component against a fake
+error path and abort), the display's size buckets and measured fit, the
+history store and hook with two tabs on one storage, the keyboard hook, the
+tooltip controller, and the `Calculator` component against a fake
 `/evaluate` backend (single request per chain, division by zero,
 unreachable backend, keyboard input, disabled keypad while a request is
-pending, operations handshake and Retry).
+pending, operations handshake, Retry and the history dropdown).
 
 CI fails when coverage drops below 90%: vitest's own thresholds for lines,
 statements, functions and branches fail `npm run test:coverage`, and the
 backend job parses `go tool cover -func` and fails under 90% statements.
 Both percentages are printed in the job summary and the reports are
-uploaded as artifacts. Coverage on 2026-10-22 (`make coverage`):
+uploaded as artifacts. This table is the one place the numbers live; measured
+on 2026-10-23 with `make coverage`:
 
 | Layer              | Statements | Lines | Notes                                                                                       |
 | ------------------ | ---------- | ----- | ------------------------------------------------------------------------------------------- |
@@ -280,15 +313,21 @@ uploaded as artifacts. Coverage on 2026-10-22 (`make coverage`):
 | Go `internal/expr` | 97.8%      |       |                                                                                             |
 | Go `cmd/server`    | 90.2%      |       | `main` is one line calling the tested `realMain`                                            |
 | Go total           | 95.1%      |       | gate 90% over `./cmd/...` and `./internal/...`; `tools/mutate` has no tests and is excluded |
-| Frontend           | 97.0%      | 98.6% | branches 94.5%, functions 98.7%; 90% thresholds enforced                                    |
+| Frontend           | 98.7%      | 99.5% | branches 95.9%, functions 99.2%; 90% thresholds enforced                                    |
 
 ### End-to-end tests
 
-[`e2e/`](e2e) holds four Playwright scenarios that run against the compose
-stack exactly as deployed: `12 + 3 = 15`, `2 + 3 × 4 = 14`, dividing by
-zero shows the error and AC recovers, and typing `2+2=` on the keyboard.
-`make e2e` builds and starts the stack, runs them and tears it down. In CI
-the `e2e` job does the same, and the deploy job needs it, so a failing
+[`e2e/`](e2e) holds 15 Playwright scenarios that run against the compose
+stack exactly as deployed: `12 + 3 = 15`; `2 + 3 × 4 = 14`; dividing by zero
+shows the error and AC recovers; typing `2+2=` on the keyboard; `1 ÷ 3`,
+fifteen typed digits and the division error (in the monospace theme) shown
+whole on a 320px phone; every key on screen and clear of the fixed controls at
+320×568, 414×568 and 667×375 while 375×667 keeps its round keys; Enter
+activating a swatch, the history button, Close and Clear and still evaluating
+with nothing focused; the key press animation off under emulated reduced
+motion; and 1.1 MB and 3 MB bodies answered with the JSON 413 and no server
+version. `make e2e` builds and starts the stack, runs them and tears it down.
+In CI the `e2e` job does the same, and the deploy job needs it, so a failing
 scenario never reaches the demo.
 
 ### Mutation testing
@@ -344,9 +383,10 @@ backend/
 frontend/
   src/api/             typed client: calculate(), operations(), ApiError, NetworkError
   src/calculator/      reducer (pure state machine), format, hooks
-  src/components/      Calculator, Display, Keypad, Key, key layout
+  src/components/      Calculator, Display and its measured size buckets, Keypad, Key, key layout
   src/theme/           theme names, persistence, picker
-  src/history/         history storage, hook, panel
+  src/history/         history storage shared across tabs, hook, dropdown
+  src/tooltip/         tooltip controller for hover and keyboard focus
   nginx.conf           static files + /api proxy for the container
 e2e/                   Playwright scenarios against the compose stack (make e2e)
 docker-compose.yml     deploy-ready stack; docker-compose.override.yml adds local ports
@@ -360,14 +400,37 @@ PROMPTS.md             every prompt used, verbatim
 Built with Claude Code (model Fable 5.1) in the Claude desktop app. The
 workflow was: a structured brainstorming session that produced the spec
 ([docs/DESIGN.md](docs/DESIGN.md)), a task plan derived from it
-([docs/PLAN.md](docs/PLAN.md)), then execution task by task with tests
-written first and one commit per task. Every prompt I sent, including
-multiple-choice answers, is in [PROMPTS.md](PROMPTS.md), verbatim and in
-order.
+([docs/PLAN.md](docs/PLAN.md)), then execution task by task, with the tests
+written from the plan's test tables and committed with the code, one commit
+per task. Every prompt I sent, including multiple-choice answers, is in
+[PROMPTS.md](PROMPTS.md), verbatim and in order.
 
 ## What would come next
 
-- Calculation history and repeat-equals
-- A CORS middleware if the API gets external clients
-- Request ids and metrics on the backend
-- Decimal arithmetic for exact money-style results
+Six steps, each with what it requires:
+
+1. **Decimal arithmetic** for exact money-style results. Requires a decimal
+   type in `calc` (`math/big.Rat` or scaled integers, to stay on the standard
+   library), numbers as strings on the wire because JSON numbers are doubles,
+   the keypad's entry rules and the formatter working on strings, and a
+   rounding rule per operation with its own test table.
+2. **Server-side history behind authentication.** Requires a user identity
+   (sessions or tokens), a store with migrations, `/api/v1/history` endpoints
+   scoped per user with deletion, and a merge of the local list on first
+   sign-in, which the hook's merge-on-write already shapes.
+3. **Share links.** Requires a URL form of an expression (the token list the
+   reducer already produces) and a route that loads it and validates it the
+   way `/evaluate` does; a stored short link would add an endpoint, expiry
+   and abuse limits.
+4. **Shared live session.** Requires a WebSocket or SSE channel, session ids,
+   one rule for concurrent presses (a single driver, or applying the pure
+   reducer's actions in the same order on every client) and reconnection;
+   the reducer's state is plain data, so it travels as it is.
+5. **Chrome extension.** Requires the CORS middleware that decision 5 left
+   out, with an allowlist of extension origins, the API published outside the
+   compose network, a manifest with host permissions, and a popup build of
+   the React app.
+6. **Request ids and metrics.** Requires a middleware that accepts or assigns
+   `X-Request-Id`, echoes it and puts it in every `slog` line, a `/metrics`
+   endpoint (counters and latency histograms on the standard library, or
+   `expvar`) kept off the public nginx route, and alerts on the error rate.

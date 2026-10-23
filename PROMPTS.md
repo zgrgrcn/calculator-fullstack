@@ -352,3 +352,9 @@ Three fixes, one commit:
 2. prefers-reduced-motion still plays the key press animation. The README says it doesn't; make that true.
 3. A 1.1 MB POST through the compose stack returns nginx's HTML 413 with its version in it. The client must see the backend's JSON 413 and no server version.
 ```
+
+## 36. README pass
+
+```text
+README: one source for coverage numbers (the table); rewrite "What would come next" as six next steps, each with what it requires: decimal arithmetic, server-side history behind auth, share links, shared live session, Chrome extension (needs the CORS decision 5 left out), request ids and metrics; fix stale wording (five themes, make setup, history dropdown, dated note in decision 1); "tests written from the plan's test tables, committed with the code"; add a short "deliberately left as is" list (repeat =, operator replacement, Delete, no paste, Content-Type not checked, no CORS); intro down to five bullets with Quick start right after it.
+```
