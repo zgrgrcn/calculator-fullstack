@@ -976,3 +976,43 @@ without changing the theme; a fourth checks 375×667 still has round keys.
   413 with `PAYLOAD_TOO_LARGE` and no digit in the `Server` header; through
   the dev server the backend answers both, through the compose stack nginx
   answers the second.
+
+## 26. Playwright suite (2026-10-23)
+
+The e2e package grew from one file of 15 scenarios into four files and four
+projects, with a shared fixture.
+
+- `tests/fixtures.ts` extends `test` so every browser context runs an init
+  script that stores the iOS theme when nothing is stored: a first visit's
+  random theme would otherwise change fonts and widths between runs. A theme a
+  test picks afterwards is kept, which the reload scenario relies on.
+- Projects: Desktop Chrome (1280×720), the original iPhone SE descriptor
+  (320×568, touch, 2× screen, mobile user agent) forced onto Chromium so one
+  browser install covers all four, a plain 320×568 window and a 667×375
+  landscape one. `api.spec.ts` needs no viewport and runs in Desktop Chrome
+  only; the two layout tests that set their own viewport (414×568, and
+  375×667 keeping round keys) skip themselves elsewhere. 23 tests, 80 runs.
+- `layout.spec.ts` runs one size check in every project from the laid-out
+  rectangles: no overflow on either axis, every key inside the viewport and at
+  least 44px on each side, no key intersecting the swatches or the GitHub
+  mark, fifteen typed digits and `1 ÷ 3` unclipped, and the history dropdown's
+  box inside the viewport.
+- Scenarios added: `√ xʸ %` as postfix keys, `2 ^ 3 ^ 2 = 512`,
+  `196 % × 5 = 9.8`, the negative square root and `10 ^ 400` errors with the
+  backend's exact messages, continuing from `Ans`, `0.1 + 0.2 = 0.3`, a long
+  expression clipped at its start with its end visible, the history round
+  trip through a reload, two tabs in one context both keeping their results,
+  Tab then Enter opening the history, the chosen theme surviving a reload, and
+  reduced motion leaving no `CSSAnimation` anywhere after `=` (having first
+  seen the key press animation without the preference).
+- Config: `workers: 4` under `CI`, `globalTimeout` two minutes, 15s per test
+  and 5s per expectation, so a hang fails fast. Locally the run takes about
+  nine seconds against the compose stack.
+
+The size check found that Desktop Chrome at 1280×720 scrolled by about 30px:
+the 8vh top margin plus the 693px full-size column did not fit. `.calculator`
+now sets `margin-top: min(8vh, max(0px, 100dvh − 693px))`, so the margin
+shrinks before anything scrolls; windows at least 600px wide and at most
+695px tall use the same compact keys as short phones; and the 60px bottom
+reservation for the fixed row applies up to 747px wide, below which the swatch
+row can sit under the 400px column. 1280×800 and 375×667 are unchanged.

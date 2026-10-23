@@ -429,7 +429,9 @@ body {
 @media (min-width: 600px) {
   .calculator {
     min-height: auto;
-    margin-top: 8vh;
+    /* 8vh from the top, less when the full-size column (693px) would not
+       fit under it, so a 720px-tall window still shows every key. */
+    margin-top: min(8vh, max(0px, 100dvh - 693px));
   }
 }
 
@@ -725,8 +727,9 @@ body {
   }
 }
 
-/* On phones the keypad reaches the bottom edge; keep it clear of the fixed row. */
-@media (max-width: 599px) {
+/* Where the column can reach the fixed row (phones, and windows too narrow
+   for the swatches to sit beside the 400px column), keep it clear of it. */
+@media (max-width: 747px) {
   .calculator {
     padding-bottom: 60px;
   }
@@ -738,8 +741,9 @@ body {
    250px: the column's 12px top and 60px bottom padding, the panel's padding
    and border, the top row, the display and the gaps), so all six rows, the
    display and the fixed bottom row fit without scrolling and nothing sits
-   over a key. The panel keeps its width; only the key height changes. */
-@media (max-height: 660px) {
+   over a key. The panel keeps its width; only the key height changes. Wider
+   windows get the same treatment below the 693px the full-size column needs. */
+@media (max-height: 660px), (min-width: 600px) and (max-height: 695px) {
   .calculator {
     min-height: 100dvh;
     margin-top: 0;

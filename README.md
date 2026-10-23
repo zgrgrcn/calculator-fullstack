@@ -24,8 +24,8 @@ available on `/api/v1/calculate`.
   on screen and nothing covering one; animations use transform and opacity
   only and stop under reduced motion
 - Every API response is JSON with one error envelope, and CI gates each deploy
-  on unit tests, coverage thresholds, 15 Playwright scenarios against the
-  compose stack and a mutation test
+  on unit tests, coverage thresholds, 23 Playwright scenarios against the
+  compose stack in four viewport projects, and a mutation test
 
 ## Quick start with Docker
 
@@ -111,7 +111,9 @@ fails.
 - Below the 375×667 baseline (320×568, 414×568, 667×375 and the like) the
   keys shorten into pills sized from the viewport, and a phone held sideways
   puts the display beside the keypad with the swatches in a column at the
-  right edge; 375×667 and up are unchanged.
+  right edge; 375×667 and up are unchanged. A desktop window shorter than
+  the full-size column gives up its top margin first and uses the same pills
+  below 696px, so a 1280×720 window shows every key too.
 
 ## Themes
 
@@ -317,18 +319,34 @@ on 2026-10-23 with `make coverage`:
 
 ### End-to-end tests
 
-[`e2e/`](e2e) holds 15 Playwright scenarios that run against the compose
-stack exactly as deployed: `12 + 3 = 15`; `2 + 3 × 4 = 14`; dividing by zero
-shows the error and AC recovers; typing `2+2=` on the keyboard; `1 ÷ 3`,
-fifteen typed digits and the division error (in the monospace theme) shown
-whole on a 320px phone; every key on screen and clear of the fixed controls at
-320×568, 414×568 and 667×375 while 375×667 keeps its round keys; Enter
-activating a swatch, the history button, Close and Clear and still evaluating
-with nothing focused; the key press animation off under emulated reduced
-motion; and 1.1 MB and 3 MB bodies answered with the JSON 413 and no server
-version. `make e2e` builds and starts the stack, runs them and tears it down.
-In CI the `e2e` job does the same, and the deploy job needs it, so a failing
-scenario never reaches the demo.
+[`e2e/`](e2e) holds 23 Playwright scenarios in four files, run against the
+compose stack exactly as deployed and in four projects: Desktop Chrome
+(1280×720), the original iPhone SE (320×568 with touch and a mobile user agent,
+in Chromium so one browser serves every project), a plain 320×568 window and a
+667×375 landscape one; 80 runs in all, about nine seconds with four workers.
+Every context starts with the iOS theme stored, so a first visit's random theme
+never changes fonts or widths between runs, while a theme a test picks is kept.
+
+- `layout.spec.ts` runs the same size check in every project: no scrolling in
+  either direction, every key inside the viewport and at least 44px on each
+  side, nothing fixed over a key, fifteen digits and `1 ÷ 3` shown whole, and
+  the history dropdown inside the viewport. Desktop Chrome also checks 414×568
+  and that 375×667 keeps its round keys.
+- `calculator.spec.ts`: `12 + 3`, `2 + 3 × 4`, `√ xʸ %` as postfix keys,
+  `2 ^ 3 ^ 2 = 512`, `196 % × 5 = 9.8`, the negative square root and
+  `10 ^ 400` errors, continuing from the answer, `0.1 + 0.2 = 0.3`, a long
+  expression keeping its right end in view, dividing by zero and AC, the
+  keyboard, Enter on focused controls, and reduced motion playing no CSS
+  animation at all.
+- `history.spec.ts`: a result surviving a reload and starting a new
+  expression when chosen, two tabs both keeping their results, Tab then Enter
+  opening the history, and the chosen theme surviving a reload.
+- `api.spec.ts` (Desktop Chrome only): 1.1 MB and 3 MB bodies get the JSON
+  413 with no server version.
+
+`make e2e` builds and starts the stack, runs them and tears it down. In CI the
+`e2e` job does the same with four workers and a two-minute global timeout, and
+the deploy job needs it, so a failing scenario never reaches the demo.
 
 ### Mutation testing
 

@@ -364,3 +364,9 @@ README: one source for coverage numbers (the table); rewrite "What would come ne
 ```text
 docs/DESIGN.md section 2 predates the evaluation model: add /evaluate, drop "iOS-style", add e2e and mutation rows.
 ```
+
+## 38. Playwright suite
+
+```text
+Playwright: pin the theme; add iPhone SE, 320×568 and 667×375 projects; a size test in every project (no overflow, all keys visible without scrolling, nothing over a key, keys ≥ 44px, 15 digits and 1 ÷ 3 unclipped, dropdown inside the viewport); scenarios for √ xʸ %, 2^3^2, 196 % × 5, negative √ error, 10^400, continue from Ans, 0.1 + 0.2, long expression keeps its right end, history round trip, two tabs both saved, Tab + Enter opens History, theme survives reload, reduced-motion plays nothing, 1.1 MB POST gives JSON 413. Explicit workers in CI. Under two minutes.
+```
