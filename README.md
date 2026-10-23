@@ -36,8 +36,13 @@ result`, newest first; clicking an entry starts a new expression from
   that result, a trash can clears the list, and Escape or a click outside closes it
 - Keys grow slightly and lighten for 120ms when pressed, by click or by
   keyboard; transform and background-color only, off under reduced motion
+- Enter on a focused button or link outside the keypad activates it, like
+  Space; on the keypad or with nothing focused Enter evaluates
 - Five themes picked from round swatches in the bottom-right corner and remembered in localStorage: iOS (follows the system light or dark preference), Netflix, Spotify, VS Code, Claude; a first visit gets one at random and keeps it
-- Every backend response is JSON, including 404, 405, 413 and 500
+- Every backend response is JSON, including 404, 405, 413 and 500; in the
+  compose stack nginx passes bodies up to 2 MB through so the backend's own
+  JSON 413 reaches the client, answers larger ones with the same JSON, and
+  sends no version (`server_tokens off`)
 - Statement coverage: 100% on the Go `calc` package, 95% on the HTTP layer,
   96% on the frontend
 

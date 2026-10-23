@@ -576,14 +576,6 @@ body {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .expression[data-complete],
-  .display[data-result],
-  .key[data-pressed] {
-    animation: none;
-  }
-}
-
 .backend-status {
   margin: 0;
   padding: 8px 12px;
@@ -840,5 +832,15 @@ body {
     top: 50%;
     bottom: auto;
     transform: translateY(-50%);
+  }
+}
+
+/* Last, so it outranks the animation rules above at equal specificity: the
+   key press rules come after the keyframes they play. */
+@media (prefers-reduced-motion: reduce) {
+  .expression[data-complete],
+  .display[data-result],
+  .key[data-pressed] {
+    animation: none;
   }
 }

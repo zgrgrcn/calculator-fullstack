@@ -343,3 +343,12 @@ History is last-writer-wins across tabs: a calculation in tab B drops what tab A
 ```text
 At 320×568, 414×568 and 667×375 the fixed swatches and GitHub mark sit over the bottom keypad row; a tap on the decimal key changes the theme. Every key visible and tappable without scrolling, nothing overlapping, at all three. Don't shrink the whole panel; keep 375×667 and up as is.
 ```
+
+## 35. Enter on controls, reduced motion, nginx 413
+
+```text
+Three fixes, one commit:
+1. Enter does nothing on a focused History button, swatch, Retry, history entry, Clear or Close; Space works.
+2. prefers-reduced-motion still plays the key press animation. The README says it doesn't; make that true.
+3. A 1.1 MB POST through the compose stack returns nginx's HTML 413 with its version in it. The client must see the backend's JSON 413 and no server version.
+```

@@ -24,12 +24,18 @@ const KEYMAP: Record<string, Key> = {
   Backspace: { type: 'backspace' },
 }
 
-/** Maps physical keys to calculator keys. Browser shortcuts (with Ctrl, Meta or Alt) are left alone. */
+/**
+ * Maps physical keys to calculator keys. Browser shortcuts (with Ctrl, Meta
+ * or Alt) are left alone, and so is Enter on a focused button or link outside
+ * the keypad: there it is that control's own activation, the same as Space,
+ * not equals. On a keypad key, or with nothing focused, Enter still evaluates.
+ */
 export function useKeyboard(press: (key: Key) => void, enabled = true) {
   useEffect(() => {
     if (!enabled) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return
+      if (event.key === 'Enter' && activatesFocusedControl(event.target)) return
       const key = KEYMAP[event.key]
       if (!key) return
       event.preventDefault()
@@ -38,4 +44,13 @@ export function useKeyboard(press: (key: Key) => void, enabled = true) {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [press, enabled])
+}
+
+/** True when Enter would activate the focused control: a button or link that is not a keypad key. */
+function activatesFocusedControl(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return (
+    target.closest('button, a, [role="button"]') !== null &&
+    target.closest('.keypad') === null
+  )
 }

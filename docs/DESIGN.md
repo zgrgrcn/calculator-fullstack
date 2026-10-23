@@ -949,3 +949,28 @@ Three Playwright tests load each of the three sizes and check from the laid-
 out rectangles that nothing scrolls, every key is inside the viewport, none
 intersects the swatches or the mark, and a click on the decimal key types `.`
 without changing the theme; a fourth checks 375×667 still has round keys.
+
+## 25. Enter on controls, reduced motion, nginx 413 (2026-10-23)
+
+- `useKeyboard` listened for Enter on the window and prevented its default
+  to evaluate, which also cancelled the activation of whatever button or link
+  had focus: the history button, a swatch, Retry, a history entry, Clear or
+  Close did nothing on Enter while Space worked. The handler now leaves Enter
+  alone when the event comes from a button or link outside `.keypad`; on a
+  keypad key, or with nothing focused, Enter still evaluates, and digits and
+  operators typed while a swatch has focus still reach the calculator.
+  `useKeyboard.test.ts` covers each case.
+- The `prefers-reduced-motion` block sat before the `.key[data-pressed='0']`
+  and `'1'` rules at equal specificity, so the press animation still played.
+  The block is now the last rule in the stylesheet. A Playwright test
+  emulates reduced motion and checks the pressed key's `animation-name` is
+  `none`, after first seeing `key-press-a` or `-b` without it.
+- nginx's default `client_max_body_size` of 1 MB cut a 1.1 MB POST off before
+  the backend saw it, answering with its own HTML 413 page naming its
+  version. `nginx.conf` now sets `server_tokens off`, allows bodies up to 2 MB
+  on `/api/` so the backend's JSON 413 (its limit is 1 MiB) reaches the
+  client, and answers anything larger itself with the same JSON body through
+  `error_page 413`. Playwright posts 1.1 MB and 3 MB bodies and expects a JSON
+  413 with `PAYLOAD_TOO_LARGE` and no digit in the `Server` header; through
+  the dev server the backend answers both, through the compose stack nginx
+  answers the second.
