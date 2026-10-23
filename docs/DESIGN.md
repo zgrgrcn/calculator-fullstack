@@ -919,3 +919,33 @@ itself: both writers' entries survive, a tab picks up the other's write, a
 clear propagates and is not undone by the next write, writes from both tabs
 order newest first under the cap, other keys are ignored, and the no-storage
 fallback keeps the page's list.
+
+## 24. Short viewports (2026-10-23)
+
+At 320×568, 414×568 and 667×375 the column was taller than the viewport, so
+the fixed swatches and GitHub mark sat over the bottom keypad row and a tap on
+the decimal key could change the theme. 375×667 and up stay as they were; the
+panel is never scaled.
+
+- `@media (max-height: 660px)`: the keys stop being squares and become pills
+  of height `clamp(40px, (100dvh − 250px) / 6, 56px)`, where 250px is
+  everything else in the column (12px top and 60px bottom padding, the
+  panel's padding and border, the top row, the display and the gaps), so six
+  rows, the display and the reserved bottom row fit the viewport exactly. The
+  panel's gap and padding drop to 8px and 12px, the `=` key spans its two rows
+  as before, and `--expression-travel` follows the smaller gap. The column is
+  pinned to the viewport height with the panel at the bottom, so the fixed row
+  is reserved at every width, short desktop windows included.
+- `@media (max-height: 460px) and (orientation: landscape)`: six rows cannot
+  fit under the display, so the panel becomes a grid with the top row and the
+  display in a left column and the keypad (four 60px columns, pills of
+  `clamp(40px, (100dvh − 80px) / 6, 48px)`) on the right, 532px wide at most
+  and centred. The swatches become a column fixed at the right edge, vertically
+  centred, with their tooltips to the left; the GitHub mark stays bottom-left,
+  and the column's side paddings (46px left, 58px right) keep the panel clear
+  of both, down to 568×320.
+
+Three Playwright tests load each of the three sizes and check from the laid-
+out rectangles that nothing scrolls, every key is inside the viewport, none
+intersects the swatches or the mark, and a click on the decimal key types `.`
+without changing the theme; a fourth checks 375×667 still has round keys.

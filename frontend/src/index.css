@@ -739,3 +739,106 @@ body {
     padding-bottom: 60px;
   }
 }
+
+/* Short viewports, below the 375×667 baseline: phones such as 320×568 and
+   414×568, and short desktop windows. The keys become pills whose height is
+   computed from the viewport (everything above and around the keypad takes
+   250px: the column's 12px top and 60px bottom padding, the panel's padding
+   and border, the top row, the display and the gaps), so all six rows, the
+   display and the fixed bottom row fit without scrolling and nothing sits
+   over a key. The panel keeps its width; only the key height changes. */
+@media (max-height: 660px) {
+  .calculator {
+    min-height: 100dvh;
+    margin-top: 0;
+    padding: 12px 16px 60px;
+    justify-content: flex-end;
+  }
+  .panel {
+    gap: 8px;
+    padding: 12px;
+  }
+  .keypad {
+    gap: 8px;
+  }
+  .key {
+    aspect-ratio: auto;
+    min-height: 0;
+    height: clamp(40px, calc((100dvh - 250px) / 6), 56px);
+    border-radius: 999px;
+  }
+  .key-tall {
+    height: auto;
+  }
+  .expression[data-complete] {
+    --expression-travel: calc(4.5rem + 8px);
+  }
+}
+
+/* Phones on their side, such as 667×375: six rows of keys cannot fit under
+   the display, so the display sits beside the keypad, and the swatches move
+   to a column on the right edge. The GitHub mark stays bottom-left, and the
+   column's side paddings keep the panel clear of both. Everything around the
+   keys takes 80px of the height here. */
+@media (max-height: 460px) and (orientation: landscape) {
+  .calculator {
+    max-width: none;
+    padding: 12px 58px 12px 46px;
+    justify-content: center;
+  }
+  .panel {
+    width: 100%;
+    max-width: 532px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      'top keypad'
+      'display keypad'
+      '. keypad'
+      'alert keypad';
+    gap: 8px 12px;
+  }
+  .panel-top {
+    grid-area: top;
+  }
+  .display {
+    grid-area: display;
+  }
+  .backend-status {
+    grid-area: alert;
+  }
+  .keypad {
+    grid-area: keypad;
+    grid-template-columns: repeat(4, 60px);
+    gap: 6px;
+  }
+  .key {
+    height: clamp(40px, calc((100dvh - 80px) / 6), 48px);
+    font-size: 1.4rem;
+  }
+  .key-tall {
+    height: auto;
+  }
+  .key-function {
+    font-size: 1.15rem;
+  }
+  .key-operator {
+    font-size: 1.8rem;
+  }
+  .theme-picker {
+    flex-direction: column;
+    right: 12px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+  .theme-picker .swatch::after {
+    right: calc(100% + 8px);
+    left: auto;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+}

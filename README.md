@@ -18,6 +18,11 @@ available on `/api/v1/calculate`.
 - Keyboard support, responsive layout from 320px up, light and dark themes
 - Small line above the display with the evaluated expression (`2 + 3 × 4 =`)
   or the last answer (`Ans = 14`) while the next one is typed
+- Below the 375×667 baseline (320×568, 414×568, 667×375 and the like) the
+  keys shorten into pills sized from the viewport, and a phone held sideways
+  puts the display beside the keypad with the swatches in a column at the
+  right edge, so every key is on screen without scrolling and nothing covers
+  one; 375×667 and up are unchanged
 - Both lines have fixed heights and the `=` animation uses transform and
   opacity only, so pressing `=` repaints the display area and nothing else
 - The main line picks the largest of seven font sizes at which the whole text

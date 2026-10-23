@@ -337,3 +337,9 @@ Review and an independent black-box test are done; fixes next, one per prompt. K
 ```text
 History is last-writer-wins across tabs: a calculation in tab B drops what tab A saved. Merge on write and pick up changes from other tabs. Unit-test two writers.
 ```
+
+## 34. Fixed controls over the keypad on short viewports
+
+```text
+At 320×568, 414×568 and 667×375 the fixed swatches and GitHub mark sit over the bottom keypad row; a tap on the decimal key changes the theme. Every key visible and tappable without scrolling, nothing overlapping, at all three. Don't shrink the whole panel; keep 375×667 and up as is.
+```

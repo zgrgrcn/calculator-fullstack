@@ -74,3 +74,67 @@ test("the division error stays whole on a 320px phone in the monospace theme", a
   await expect(display(page)).toHaveText("Cannot divide by zero");
   expect(await clipped(page)).toBe(false);
 });
+
+// Below the 375×667 baseline the keys shorten into pills, and on a phone held
+// sideways the display sits beside the keypad, so every key is on screen
+// without scrolling and the fixed swatches and GitHub mark never cover one.
+const SHORT_VIEWPORTS = [
+  [320, 568],
+  [414, 568],
+  [667, 375],
+] as const;
+
+for (const [width, height] of SHORT_VIEWPORTS) {
+  test(`every key is on screen and clear of the fixed controls at ${width}×${height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    const layout = await page.evaluate(() => {
+      const rect = (element: Element) => element.getBoundingClientRect();
+      const overlaps = (a: DOMRect, b: DOMRect) =>
+        a.left < b.right &&
+        b.left < a.right &&
+        a.top < b.bottom &&
+        b.top < a.bottom;
+      const picker = rect(document.querySelector(".theme-picker") as Element);
+      const link = rect(document.querySelector(".source-link") as Element);
+      const keys = [...document.querySelectorAll(".key")].map((key) => ({
+        name: key.getAttribute("aria-label"),
+        box: rect(key),
+      }));
+      return {
+        scrolls: document.documentElement.scrollHeight > innerHeight,
+        offScreen: keys
+          .filter(
+            ({ box }) =>
+              box.top < 0 ||
+              box.left < 0 ||
+              box.bottom > innerHeight ||
+              box.right > innerWidth,
+          )
+          .map((key) => key.name),
+        covered: keys
+          .filter(({ box }) => overlaps(box, picker) || overlaps(box, link))
+          .map((key) => key.name),
+      };
+    });
+    expect(layout).toEqual({ scrolls: false, offScreen: [], covered: [] });
+    // A tap on the decimal key reaches the key, not a swatch.
+    const theme = await page.evaluate(
+      () => document.documentElement.dataset.theme,
+    );
+    await key(page, "Decimal point").click();
+    await expect(display(page)).toHaveText("0.");
+    expect(
+      await page.evaluate(() => document.documentElement.dataset.theme),
+    ).toBe(theme);
+  });
+}
+
+test("the 375×667 layout keeps its round keys", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  const seven = await key(page, "7").boundingBox();
+  expect(seven).not.toBeNull();
+  expect(Math.round(seven!.width)).toBe(Math.round(seven!.height));
+  expect(Math.round(seven!.width)).toBeGreaterThan(60);
+});
