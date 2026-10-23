@@ -1,22 +1,20 @@
-import { sizeFor } from './textSize'
+import type { Size } from './size'
 
 interface Props {
   text: string
   /** True once the expression has been evaluated; CSS moves it up into place. */
   complete: boolean
+  /** The size bucket the expression had in the main line, where the CSS animation starts from. */
+  size: Size
 }
 
-/**
- * The small line above the main display. Its size bucket is the one the
- * expression had in the main line (without the closing "="), so the CSS
- * animation can start from the size it is leaving.
- */
-export function ExpressionLine({ text, complete }: Props) {
+/** The small line above the main display. */
+export function ExpressionLine({ text, complete, size }: Props) {
   return (
     <p
       className="expression"
       data-testid="expression"
-      data-size={sizeFor(text.replace(/ =$/, ''))}
+      data-size={size}
       data-complete={complete || undefined}
     >
       <span className="line-text">

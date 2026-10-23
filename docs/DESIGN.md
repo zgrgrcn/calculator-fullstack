@@ -27,20 +27,20 @@ state, internationalised number formats, arbitrary-precision arithmetic.
 
 ## 2. Requirements mapping
 
-| Requirement | Where it is met |
-|---|---|
-| Add, subtract, multiply, divide | `calc` package; keypad `+ − × ÷` |
-| Exponentiation, square root, percentage | `calc` package; keypad `xʸ √ %` |
-| Intuitive UI | iOS-style keypad, keyboard shortcuts, live display |
+| Requirement                                    | Where it is met                                                         |
+| ---------------------------------------------- | ----------------------------------------------------------------------- |
+| Add, subtract, multiply, divide                | `calc` package; keypad `+ − × ÷`                                        |
+| Exponentiation, square root, percentage        | `calc` package; keypad `xʸ √ %`                                         |
+| Intuitive UI                                   | iOS-style keypad, keyboard shortcuts, live display                      |
 | Input validation and error handling (frontend) | entry rules in the reducer; API and network errors shown in the display |
-| Responsive design | CSS grid keypad, fills a phone viewport, max-width 400px on desktop |
-| Endpoints for operations | `POST /api/v1/calculate`, `GET /api/v1/operations`, `GET /healthz` |
-| Validate input, division by zero, invalid data | request decoding + `calc` errors mapped to 400/422 |
-| JSON results | every response, including errors, is JSON |
-| Unit tests, both layers | Go `testing` + `httptest`; Vitest + Testing Library |
-| Coverage report | `make coverage`, README table, CI artifacts |
-| Dockerfile for full stack | two Dockerfiles + `docker-compose.yml` |
-| Prompts shared | `PROMPTS.md`, append-only, verbatim |
+| Responsive design                              | CSS grid keypad, fills a phone viewport, max-width 400px on desktop     |
+| Endpoints for operations                       | `POST /api/v1/calculate`, `GET /api/v1/operations`, `GET /healthz`      |
+| Validate input, division by zero, invalid data | request decoding + `calc` errors mapped to 400/422                      |
+| JSON results                                   | every response, including errors, is JSON                               |
+| Unit tests, both layers                        | Go `testing` + `httptest`; Vitest + Testing Library                     |
+| Coverage report                                | `make coverage`, README table, CI artifacts                             |
+| Dockerfile for full stack                      | two Dockerfiles + `docker-compose.yml`                                  |
+| Prompts shared                                 | `PROMPTS.md`, append-only, verbatim                                     |
 
 ## 3. Architecture
 
@@ -155,15 +155,15 @@ var (
 
 Semantics:
 
-| Operation | Arity | Result | Errors |
-|---|---|---|---|
-| add | 2 | a + b | not finite |
-| subtract | 2 | a − b | not finite |
-| multiply | 2 | a × b | not finite |
-| divide | 2 | a ÷ b | b == 0 (including −0) → `ErrDivisionByZero`; not finite |
-| power | 2 | math.Pow(a, b) | NaN or ±Inf (0⁻¹, (−8)^(1/3), 10^400) → `ErrNotFinite` |
-| sqrt | 1 | math.Sqrt(a) | a < 0 → `ErrInvalidOperand` ("square root of a negative number") |
-| percentage | 1 | a ÷ 100 | none |
+| Operation  | Arity | Result         | Errors                                                           |
+| ---------- | ----- | -------------- | ---------------------------------------------------------------- |
+| add        | 2     | a + b          | not finite                                                       |
+| subtract   | 2     | a − b          | not finite                                                       |
+| multiply   | 2     | a × b          | not finite                                                       |
+| divide     | 2     | a ÷ b          | b == 0 (including −0) → `ErrDivisionByZero`; not finite          |
+| power      | 2     | math.Pow(a, b) | NaN or ±Inf (0⁻¹, (−8)^(1/3), 10^400) → `ErrNotFinite`           |
+| sqrt       | 1     | math.Sqrt(a)   | a < 0 → `ErrInvalidOperand` ("square root of a negative number") |
+| percentage | 1     | a ÷ 100        | none                                                             |
 
 Rules:
 
@@ -184,13 +184,13 @@ Rules:
 
 Routes (Go 1.22 `ServeMux` patterns):
 
-| Pattern | Behaviour |
-|---|---|
-| `POST /api/v1/calculate` | decode, call `calc.Calculate`, respond |
-| `/api/v1/calculate` (any other method) | 405 JSON with `Allow: POST` |
-| `GET /api/v1/operations` | `{"operations": calc.Operations()}` |
-| `GET /healthz` | `{"status":"ok"}` |
-| `/` (everything else) | 404 JSON |
+| Pattern                                | Behaviour                              |
+| -------------------------------------- | -------------------------------------- |
+| `POST /api/v1/calculate`               | decode, call `calc.Calculate`, respond |
+| `/api/v1/calculate` (any other method) | 405 JSON with `Allow: POST`            |
+| `GET /api/v1/operations`               | `{"operations": calc.Operations()}`    |
+| `GET /healthz`                         | `{"status":"ok"}`                      |
+| `/` (everything else)                  | 404 JSON                               |
 
 Request handling for `calculate`:
 
@@ -205,14 +205,14 @@ Request handling for `calculate`:
    Missing or null `operands` is an empty list and fails the arity check.
 4. `calc.Calculate` errors map via `errors.Is`:
 
-| calc error | HTTP | code |
-|---|---|---|
-| `ErrUnknownOperation` | 400 | `UNKNOWN_OPERATION` |
-| `ErrOperandCount` | 400 | `INVALID_OPERAND_COUNT` |
-| `ErrInvalidOperand` | 422 | `INVALID_OPERAND` |
-| `ErrDivisionByZero` | 422 | `DIVISION_BY_ZERO` |
-| `ErrNotFinite` | 422 | `RESULT_NOT_FINITE` |
-| anything else | 500 | `INTERNAL_ERROR` (logged) |
+| calc error            | HTTP | code                      |
+| --------------------- | ---- | ------------------------- |
+| `ErrUnknownOperation` | 400  | `UNKNOWN_OPERATION`       |
+| `ErrOperandCount`     | 400  | `INVALID_OPERAND_COUNT`   |
+| `ErrInvalidOperand`   | 422  | `INVALID_OPERAND`         |
+| `ErrDivisionByZero`   | 422  | `DIVISION_BY_ZERO`        |
+| `ErrNotFinite`        | 422  | `RESULT_NOT_FINITE`       |
+| anything else         | 500  | `INTERNAL_ERROR` (logged) |
 
 400 means the request itself is malformed or names something that does not
 exist. 422 means the request is well-formed but the mathematics is impossible.
@@ -288,19 +288,28 @@ Scripts: `dev`, `build` (`tsc -b && vite build`), `preview`, `lint`,
 ### 7.2 `api/client.ts`
 
 ```ts
-export type OperationName = 'add' | 'subtract' | 'multiply' | 'divide' | 'power' | 'sqrt' | 'percentage';
-export class ApiError extends Error { code: string; status: number }
+export type OperationName =
+  "add" | "subtract" | "multiply" | "divide" | "power" | "sqrt" | "percentage";
+export class ApiError extends Error {
+  code: string;
+  status: number;
+}
 export class NetworkError extends Error {}
 export async function calculate(
   operation: OperationName,
   operands: number[],
   options?: { signal?: AbortSignal; baseUrl?: string },
-): Promise<number>
+): Promise<number>;
 
-export interface OperationSpec { name: OperationName; arity: 1 | 2; symbol: string }
-export async function operations(
-  options?: { signal?: AbortSignal; baseUrl?: string },
-): Promise<OperationSpec[]>
+export interface OperationSpec {
+  name: OperationName;
+  arity: 1 | 2;
+  symbol: string;
+}
+export async function operations(options?: {
+  signal?: AbortSignal;
+  baseUrl?: string;
+}): Promise<OperationSpec[]>;
 ```
 
 - POST `${baseUrl}/api/v1/calculate`, `baseUrl` defaults to `''` (same origin).
@@ -316,35 +325,55 @@ export async function operations(
 ### 7.3 Types
 
 ```ts
-export type BinaryOp = 'add' | 'subtract' | 'multiply' | 'divide' | 'power';
-export type UnaryOp = 'sqrt' | 'percentage';
+export type BinaryOp = "add" | "subtract" | "multiply" | "divide" | "power";
+export type UnaryOp = "sqrt" | "percentage";
 
 export type Key =
-  | { type: 'digit'; value: '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' }
-  | { type: 'decimal' } | { type: 'negate' } | { type: 'backspace' } | { type: 'clear' }
-  | { type: 'operator'; op: BinaryOp } | { type: 'unary'; op: UnaryOp } | { type: 'equals' };
+  | {
+      type: "digit";
+      value: "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+    }
+  | { type: "decimal" }
+  | { type: "negate" }
+  | { type: "backspace" }
+  | { type: "clear" }
+  | { type: "operator"; op: BinaryOp }
+  | { type: "unary"; op: UnaryOp }
+  | { type: "equals" };
 
 export type Action =
-  | { type: 'key'; key: Key }
-  | { type: 'resolved'; id: number; value: number }
-  | { type: 'failed'; id: number; message: string };
+  | { type: "key"; key: Key }
+  | { type: "resolved"; id: number; value: number }
+  | { type: "failed"; id: number; message: string };
 
-export type After = { kind: 'operator'; op: BinaryOp } | { kind: 'equals' } | { kind: 'unary' };
+export type After =
+  { kind: "operator"; op: BinaryOp } | { kind: "equals" } | { kind: "unary" };
 
-export interface Request { id: number; op: BinaryOp | UnaryOp; operands: number[]; after: After }
-export interface PendingOperand { value: number; op: BinaryOp }
-export type ExpressionToken = { kind: 'number'; text: string } | { kind: 'operator'; op: BinaryOp } | { kind: 'equals' }
+export interface Request {
+  id: number;
+  op: BinaryOp | UnaryOp;
+  operands: number[];
+  after: After;
+}
+export interface PendingOperand {
+  value: number;
+  op: BinaryOp;
+}
+export type ExpressionToken =
+  | { kind: "number"; text: string }
+  | { kind: "operator"; op: BinaryOp }
+  | { kind: "equals" };
 
 export interface State {
-  display: string;              // text on screen: entry, formatted result, or error message
-  entry: string | null;         // digits being typed; null when display shows a result
-  value: number;                // numeric value of the current operand
-  stack: PendingOperand[];      // left operands waiting for a right operand
-  awaitingOperand: boolean;     // true right after an operator key
-  status: 'idle' | 'computing' | 'error';
-  request: Request | null;      // at most one in flight
-  nextRequestId: number;        // monotonic, survives AC
-  tokens: ExpressionToken[];    // what was pressed, for the expression line (added 2026-10-21)
+  display: string; // text on screen: entry, formatted result, or error message
+  entry: string | null; // digits being typed; null when display shows a result
+  value: number; // numeric value of the current operand
+  stack: PendingOperand[]; // left operands waiting for a right operand
+  awaitingOperand: boolean; // true right after an operator key
+  status: "idle" | "computing" | "error";
+  request: Request | null; // at most one in flight
+  nextRequestId: number; // monotonic, survives AC
+  tokens: ExpressionToken[]; // what was pressed, for the expression line (added 2026-10-21)
 }
 ```
 
@@ -410,9 +439,9 @@ Precedence is delivered in two commits so the second can be reverted alone:
 - v1, single pending operator: `shouldReduce` returns `true` always, so the
   stack never holds more than one entry and `2 + 3 × 4 =` gives 20.
 - v2, precedence: `prec(add) = prec(subtract) = 1`, `prec(multiply) =
-  prec(divide) = 2`, `prec(power) = 3`. `shouldReduce(top, incoming) =
-  prec(top) > prec(incoming) || (prec(top) === prec(incoming) && incoming !==
-  'power')`. Power is right-associative: `2 ^ 3 ^ 2 = 512`. `2 + 3 × 4 =`
+prec(divide) = 2`, `prec(power) = 3`. `shouldReduce(top, incoming) =
+prec(top) > prec(incoming) || (prec(top) === prec(incoming) && incoming !==
+'power')`. Power is right-associative: `2 ^ 3 ^ 2 = 512`. `2 + 3 × 4 =`
   gives 14 with two sequential requests; `2 × 3 + 4` reduces to 6 when `+`
   is pressed, then pushes `6 +`.
 
@@ -443,8 +472,10 @@ shows 14.
 
 ```ts
 export function useCalculator(client = calculate): {
-  display: string; status: State['status']; press: (key: Key) => void;
-}
+  display: string;
+  status: State["status"];
+  press: (key: Key) => void;
+};
 ```
 
 `useReducer` plus one `useEffect` keyed on `state.request`: create an
@@ -552,7 +583,7 @@ Frontend (`vitest run --coverage`, thresholds 85% lines and statements):
   result → INVALID_RESPONSE, abort; `operations()` success and a non-array
   body → INVALID_RESPONSE.
 - `Calculator.test.tsx` with a mocked `fetch`: `12 + 3 = 15`, `2 + 3 × 4 =
-  14` (two calls, in order), divide by zero shows "Cannot divide by zero" and
+14` (two calls, in order), divide by zero shows "Cannot divide by zero" and
   AC recovers, network failure shows "Backend unreachable", keyboard input,
   keypad disabled while a request is pending, `xʸ` disabled when the mocked
   operations list omits `power`, a failed mount request shows the status
@@ -587,11 +618,11 @@ deploy, and via `make mutate`.
     `depends_on: service_healthy` delays nginx by that much);
     `deploy.resources.limits.memory: 128M`.
   - `frontend`: build, `expose: ["80"]`, `depends_on: backend:
-    condition: service_healthy`, healthcheck
+condition: service_healthy`, healthcheck
     `["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]` same timings;
     memory limit `64M`.
 - `docker-compose.override.yml` (picked up automatically by `docker compose
-  up`): publishes `3000:80` for the frontend and `8080:8080` for the backend.
+up`): publishes `3000:80` for the frontend and `8080:8080` for the backend.
   Coolify copies the main file into its own deployment directory and runs it
   with `-f`, which should skip the override; verify on the first deploy. If
   it is picked up anyway, rename it to `docker-compose.local.yml` and
@@ -606,9 +637,9 @@ Triggers: `push` to `main`, `pull_request`. Jobs:
 
 1. `backend`: `actions/setup-go` with `go-version-file: backend/go.mod`;
    `gofmt -l` must be empty; `go vet ./...`; `go test -race
-   -coverprofile=coverage.out ./...`; upload `coverage.out` as artifact.
+-coverprofile=coverage.out ./...`; upload `coverage.out` as artifact.
 2. `frontend`: `actions/setup-node` 24 with npm cache; `npm ci`; `npm run
-   lint`; `npm run typecheck`; `npm run test:coverage`; upload `coverage/`.
+lint`; `npm run typecheck`; `npm run test:coverage`; upload `coverage/`.
 3. `docker`: `docker compose build`.
 4. `deploy`: `needs: [backend, frontend, docker]`, runs only when
    `github.event_name == 'push' && github.ref == 'refs/heads/main'`,
@@ -630,11 +661,10 @@ Triggers: `push` to `main`, `pull_request`. Jobs:
   `/docker-compose.yml`. Created through the Coolify API
   (`POST /api/v1/applications/public` with `build_pack: dockercompose`,
   `docker_compose_location: /docker-compose.yml` and `docker_compose_domains:
-  [{name: frontend, domain: https://calculator.ozgurgurcan.com}]`; fields
+[{name: frontend, domain: https://calculator.ozgurgurcan.com}]`; fields
   verified against the Coolify OpenAPI spec on 2026-10-21). The deploy
   webhook is `POST /api/v1/deploy?uuid=<app uuid>`; GET is accepted too.
-- Domain `https://calculator.ozgurgurcan.com` on the `frontend` service, port
-  80. `*.ozgurgurcan.com` already resolves through Cloudflare (verified
+- Domain `https://calculator.ozgurgurcan.com` on the `frontend` service, port 80. `*.ozgurgurcan.com` already resolves through Cloudflare (verified
   2026-10-21), so Traefik and TLS work as for the other apps. The backend is
   internal only.
 - Coolify's own push-to-deploy stays off; CI triggers the deploy webhook
@@ -682,19 +712,19 @@ one-line italic note of the question it answered.
 
 ## 13. Delivery order and time budget
 
-| Step | Commit | Est. |
-|---|---|---|
-| 1 | docs: design spec, prompt log, gitignore (this commit) | done |
-| 2 | chore: scaffold Go module and Vite app, Makefile | 15 min |
-| 3 | feat(backend): calc package with tests | 20 min |
-| 4 | feat(backend): HTTP API, middleware, server, tests | 30 min |
-| 5 | feat(frontend): client, format, reducer v1 (single pending operator), tests | 35 min |
-| 6 | feat(frontend): keypad UI, hooks, operations handshake, keyboard, component tests | 50 min |
-| 7 | feat(frontend): operator precedence, right-associative power (revertable) | 20 min |
-| 8 | build: Dockerfiles, compose with healthchecks and limits | 20 min |
-| 9 | ci: test, build and deploy workflow | 15 min |
-| 10 | docs: README with coverage numbers | 25 min |
-| 11 | deploy: Coolify app, secrets, first webhook deploy, live link in README | 20 min |
+| Step | Commit                                                                            | Est.   |
+| ---- | --------------------------------------------------------------------------------- | ------ |
+| 1    | docs: design spec, prompt log, gitignore (this commit)                            | done   |
+| 2    | chore: scaffold Go module and Vite app, Makefile                                  | 15 min |
+| 3    | feat(backend): calc package with tests                                            | 20 min |
+| 4    | feat(backend): HTTP API, middleware, server, tests                                | 30 min |
+| 5    | feat(frontend): client, format, reducer v1 (single pending operator), tests       | 35 min |
+| 6    | feat(frontend): keypad UI, hooks, operations handshake, keyboard, component tests | 50 min |
+| 7    | feat(frontend): operator precedence, right-associative power (revertable)         | 20 min |
+| 8    | build: Dockerfiles, compose with healthchecks and limits                          | 20 min |
+| 9    | ci: test, build and deploy workflow                                               | 15 min |
+| 10   | docs: README with coverage numbers                                                | 25 min |
+| 11   | deploy: Coolify app, secrets, first webhook deploy, live link in README           | 20 min |
 
 Total about 4 hours of implementation. Cut list if over budget, in order:
 step 7 (precedence), keyboard shortcuts, CI docker job, dark mode.
@@ -724,7 +754,7 @@ the recording of the Google calculator is the reference.
   before it and nests (`√(√(81))`); digits after a closed operand are
   ignored; backspace edits the entry, then removes tokens.
 - **`POST /api/v1/evaluate`** takes `{tokens: [{type:number,value} |
-  {type:operator,op} | {type:unary,op}]}` and returns `{result}`.
+{type:operator,op} | {type:unary,op}]}` and returns `{result}`.
   `internal/expr` parses with precedence climbing (`+ −` 1, `× ÷` 2, `^` 3
   right-associative, postfix unary tightest) and calls `calc.Calculate` for
   every step, so the error codes are shared; malformed lists are 400
@@ -824,3 +854,43 @@ control carries `data-tooltip-open`, which `installTooltips`
 
 The dropdown's Clear button shows a trash can instead of the broom: the same
 inline SVG style, `aria-label` and tooltip.
+
+## 22. Display sized by measurement (2026-10-23)
+
+The main line chose its font size from the character count (9 and 14 as the
+boundaries), which clipped valid results: `0.333333333333` is 14 characters,
+got 2.5rem, and at that size overflowed the line from 12 characters on a 375px
+phone, so the start-clipping ellipsis hid the leading `0.`. Every 12-digit
+decimal result did this.
+
+The size is now measured. `useFittedSize` (`src/components/useFittedSize.ts`)
+applies each of seven buckets (`SIZES` in `size.ts`: normal 3.5rem, medium
+3rem, small 2.5rem, compact 2rem, tiny 1.6rem, micro 1.2rem, nano 1rem) to the
+display in turn
+and keeps the first at which the text's box is no wider than the line that
+clips it, measuring the browser's own layout, so every theme's font and every
+viewport width is covered without guessing glyph widths. It runs in a layout
+effect whenever the text changes, so no frame paints a wrong size, and again
+from a `ResizeObserver` on the display and the line when the viewport or the
+theme's font changes. Micro holds the longest result the formatter can
+produce, 20 characters (`-0.00000123456789012`), inside a 320px viewport in
+every theme's font; nano exists for `Cannot divide by zero`, which the
+monospace VS Code font sets wider than micro allows there. Only an over-long
+expression still clips at its start, as before. Both lines keep their fixed
+heights. Error messages are capped at 1.6rem with `min()` and shrink below it
+only when they must.
+
+The expression line's bucket, which the `=` animation scales from, is no longer
+computed from its text: `Display` reports its measured bucket through `onSize`,
+`Calculator` remembers it while no result is shown, and passes it to
+`ExpressionLine` as the size the expression had in the main line. The stylesheet
+has an `--expression-scale` per bucket.
+
+Tests: `size.test.ts` covers the bucket boundaries of `fitSize`;
+`Display.test.tsx` stands in for layout with character widths of 0.6em and
+checks that `0.333333333333` is whole at 320px (tiny) and at the desktop width
+(compact), that the longest results and fifteen typed digits fit at 320px, that
+an over-long expression falls back to nano and clips, that the error message
+shrinks only as far as it must, and that a resize is measured again; three
+Playwright tests check the real layout at a 320px viewport, one of them in the
+monospace theme.

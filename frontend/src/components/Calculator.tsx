@@ -10,6 +10,7 @@ import { Display } from './Display'
 import { ExpressionLine } from './ExpressionLine'
 import { Keypad } from './Keypad'
 import { keyId } from './keys'
+import type { Size } from './size'
 
 export function Calculator() {
   const history = useHistory()
@@ -37,6 +38,16 @@ export function Calculator() {
   )
   // While the history dropdown is open, keys belong to it (Escape closes it).
   useKeyboard(pressWithFeedback, !historyOpen)
+
+  // The bucket the expression was shown at in the main line, kept from before
+  // the result replaced it, so the small line's animation starts at that size.
+  const [expressionSize, setExpressionSize] = useState<Size>('normal')
+  const rememberSize = useCallback(
+    (size: Size) => {
+      if (!complete) setExpressionSize(size)
+    },
+    [complete],
+  )
 
   const closeHistory = useCallback(() => setHistoryOpen(false), [])
   const chooseHistory = useCallback(
@@ -86,13 +97,18 @@ export function Calculator() {
               />
             )}
           </div>
-          <ExpressionLine text={expression} complete={complete} />
+          <ExpressionLine
+            text={expression}
+            complete={complete}
+            size={expressionSize}
+          />
         </div>
         {/* The attribute stays off while a chain is still computing, so the fade plays once on the final result. */}
         <Display
           text={display}
           error={status === 'error'}
           result={complete && status === 'idle'}
+          onSize={rememberSize}
         />
         {ops.status === 'error' && (
           <p className="backend-status" role="alert">

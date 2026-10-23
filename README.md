@@ -20,9 +20,12 @@ available on `/api/v1/calculate`.
   or the last answer (`Ans = 14`) while the next one is typed
 - Both lines have fixed heights and the `=` animation uses transform and
   opacity only, so pressing `=` repaints the display area and nothing else
+- The main line picks the largest of seven font sizes at which the whole text
+  fits, measured in the browser rather than guessed from a character count,
+  so no result is ever clipped at 320px and up
 - History: every finished evaluation is kept in localStorage; the clock
   icon at the top-left of the panel drops down a list of `expression =
-  result`, newest first; clicking an entry starts a new expression from
+result`, newest first; clicking an entry starts a new expression from
   that result, a trash can clears the list, and Escape or a click outside closes it
 - Keys grow slightly and lighten for 120ms when pressed, by click or by
   keyboard; transform and background-color only, off under reduced motion
@@ -117,12 +120,12 @@ The backend reads one environment variable, `PORT` (default `8080`).
 
 Base path `/api/v1`. Every response is `application/json; charset=utf-8`.
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/v1/evaluate` | Evaluate a whole expression given as a token list |
-| `POST` | `/api/v1/calculate` | Run one operation |
-| `GET` | `/api/v1/operations` | List operations with arity and symbol |
-| `GET` | `/healthz` | Liveness, `{"status":"ok"}` |
+| Method | Path                 | Purpose                                           |
+| ------ | -------------------- | ------------------------------------------------- |
+| `POST` | `/api/v1/evaluate`   | Evaluate a whole expression given as a token list |
+| `POST` | `/api/v1/calculate`  | Run one operation                                 |
+| `GET`  | `/api/v1/operations` | List operations with arity and symbol             |
+| `GET`  | `/healthz`           | Liveness, `{"status":"ok"}`                       |
 
 Operations and operand counts: `add`, `subtract`, `multiply`, `divide`,
 `power` take two operands; `sqrt` and `percentage` take one.
@@ -167,19 +170,19 @@ Errors always have the shape `{"error":{"code":"...","message":"..."}}`.
 exist; 422 means the request is well-formed but the mathematics is
 impossible.
 
-| Status | Code | When |
-|---|---|---|
-| 400 | `INVALID_REQUEST` | Malformed JSON, unknown field, non-numeric or out-of-range operand (`1e999`), missing operation, more than one JSON value in the body |
-| 400 | `UNKNOWN_OPERATION` | `operation` is not in the registry |
-| 400 | `INVALID_EXPRESSION` | `/evaluate` token list is empty or malformed: leading or doubled operators, a trailing operator, a unary with nothing before it |
-| 400 | `INVALID_OPERAND_COUNT` | Wrong number of operands for the operation |
-| 422 | `INVALID_OPERAND` | Square root of a negative number |
-| 422 | `DIVISION_BY_ZERO` | Divisor is 0 (or −0) |
-| 422 | `RESULT_NOT_FINITE` | Result overflows or is undefined, such as `10^400` or `0^-1` |
-| 404 | `NOT_FOUND` | Unknown route |
-| 405 | `METHOD_NOT_ALLOWED` | Wrong method; the `Allow` header names the right one |
-| 413 | `PAYLOAD_TOO_LARGE` | Body over 1 MiB |
-| 500 | `INTERNAL_ERROR` | A panic, recovered and logged; never a stack trace |
+| Status | Code                    | When                                                                                                                                  |
+| ------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 400    | `INVALID_REQUEST`       | Malformed JSON, unknown field, non-numeric or out-of-range operand (`1e999`), missing operation, more than one JSON value in the body |
+| 400    | `UNKNOWN_OPERATION`     | `operation` is not in the registry                                                                                                    |
+| 400    | `INVALID_EXPRESSION`    | `/evaluate` token list is empty or malformed: leading or doubled operators, a trailing operator, a unary with nothing before it       |
+| 400    | `INVALID_OPERAND_COUNT` | Wrong number of operands for the operation                                                                                            |
+| 422    | `INVALID_OPERAND`       | Square root of a negative number                                                                                                      |
+| 422    | `DIVISION_BY_ZERO`      | Divisor is 0 (or −0)                                                                                                                  |
+| 422    | `RESULT_NOT_FINITE`     | Result overflows or is undefined, such as `10^400` or `0^-1`                                                                          |
+| 404    | `NOT_FOUND`             | Unknown route                                                                                                                         |
+| 405    | `METHOD_NOT_ALLOWED`    | Wrong method; the `Allow` header names the right one                                                                                  |
+| 413    | `PAYLOAD_TOO_LARGE`     | Body over 1 MiB                                                                                                                       |
+| 500    | `INTERNAL_ERROR`        | A panic, recovered and logged; never a stack trace                                                                                    |
 
 Numbers are IEEE 754 doubles, returned raw: `0.1 + 0.2` is
 `0.30000000000000004` at the API, and the frontend rounds to 12 significant
@@ -258,14 +261,14 @@ backend job parses `go tool cover -func` and fails under 90% statements.
 Both percentages are printed in the job summary and the reports are
 uploaded as artifacts. Coverage on 2026-10-22 (`make coverage`):
 
-| Layer | Statements | Lines | Notes |
-|---|---|---|---|
-| Go `internal/calc` | 100% | | |
-| Go `internal/api` | 94.6% | | |
-| Go `internal/expr` | 97.8% | | |
-| Go `cmd/server` | 90.2% | | `main` is one line calling the tested `realMain` |
-| Go total | 95.1% | | gate 90% over `./cmd/...` and `./internal/...`; `tools/mutate` has no tests and is excluded |
-| Frontend | 97.0% | 98.6% | branches 94.5%, functions 98.7%; 90% thresholds enforced |
+| Layer              | Statements | Lines | Notes                                                                                       |
+| ------------------ | ---------- | ----- | ------------------------------------------------------------------------------------------- |
+| Go `internal/calc` | 100%       |       |                                                                                             |
+| Go `internal/api`  | 94.6%      |       |                                                                                             |
+| Go `internal/expr` | 97.8%      |       |                                                                                             |
+| Go `cmd/server`    | 90.2%      |       | `main` is one line calling the tested `realMain`                                            |
+| Go total           | 95.1%      |       | gate 90% over `./cmd/...` and `./internal/...`; `tools/mutate` has no tests and is excluded |
+| Frontend           | 97.0%      | 98.6% | branches 94.5%, functions 98.7%; 90% thresholds enforced                                    |
 
 ### End-to-end tests
 

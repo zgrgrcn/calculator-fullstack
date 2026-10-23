@@ -436,7 +436,9 @@ body {
 /* Both lines have fixed heights and never wrap, so changing their text can
    not move anything below them. Overflowing text is clipped at its start
    (the rtl container with an ltr bdi inside puts the ellipsis on the left),
-   keeping the most recent input visible. */
+   keeping the most recent input visible. The main line only ever clips an
+   over-long expression: useFittedSize measures the text and picks the
+   largest size bucket below at which it fits. */
 .expression {
   height: 1.5rem;
   margin: 0;
@@ -462,28 +464,49 @@ body {
 }
 
 .display {
+  --display-size: 3.5rem;
   height: 4.5rem;
   padding: 0 8px;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  font-size: 3.5rem;
+  font-size: var(--display-size);
   font-weight: 400;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
+/* Size buckets, largest first. Micro holds the longest result the formatter
+   can produce, 20 characters, inside a 320px viewport in every theme's font;
+   nano is for the error messages, which the monospace theme sets wider. */
+.display[data-size='medium'] {
+  --display-size: 3rem;
+}
+
 .display[data-size='small'] {
-  font-size: 2.5rem;
+  --display-size: 2.5rem;
+}
+
+.display[data-size='compact'] {
+  --display-size: 2rem;
 }
 
 .display[data-size='tiny'] {
-  font-size: 1.6rem;
+  --display-size: 1.6rem;
 }
 
+.display[data-size='micro'] {
+  --display-size: 1.2rem;
+}
+
+.display[data-size='nano'] {
+  --display-size: 1rem;
+}
+
+/* Error messages are never larger than 1.6rem, but still shrink to fit. */
 .display[data-error] {
   color: var(--error);
-  font-size: 1.6rem;
+  font-size: min(var(--display-size), 1.6rem);
   font-weight: 400;
 }
 
@@ -503,12 +526,28 @@ body {
   animation: expression-into-place 200ms ease-out;
 }
 
+.expression[data-complete][data-size='medium'] {
+  --expression-scale: 2.73; /* 3rem / 1.1rem */
+}
+
 .expression[data-complete][data-size='small'] {
   --expression-scale: 2.27; /* 2.5rem / 1.1rem */
 }
 
+.expression[data-complete][data-size='compact'] {
+  --expression-scale: 1.82; /* 2rem / 1.1rem */
+}
+
 .expression[data-complete][data-size='tiny'] {
   --expression-scale: 1.45; /* 1.6rem / 1.1rem */
+}
+
+.expression[data-complete][data-size='micro'] {
+  --expression-scale: 1.09; /* 1.2rem / 1.1rem */
+}
+
+.expression[data-complete][data-size='nano'] {
+  --expression-scale: 0.91; /* 1rem / 1.1rem */
 }
 
 .display[data-result] {
@@ -687,7 +726,7 @@ body {
     font-size: 1.9rem;
   }
   .display {
-    font-size: 3rem;
+    --display-size: 3rem;
   }
   .expression[data-complete] {
     --expression-scale: 2.73; /* 3rem / 1.1rem */
