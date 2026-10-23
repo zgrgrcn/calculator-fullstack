@@ -27,20 +27,22 @@ state, internationalised number formats, arbitrary-precision arithmetic.
 
 ## 2. Requirements mapping
 
-| Requirement                                    | Where it is met                                                         |
-| ---------------------------------------------- | ----------------------------------------------------------------------- |
-| Add, subtract, multiply, divide                | `calc` package; keypad `+ − × ÷`                                        |
-| Exponentiation, square root, percentage        | `calc` package; keypad `xʸ √ %`                                         |
-| Intuitive UI                                   | iOS-style keypad, keyboard shortcuts, live display                      |
-| Input validation and error handling (frontend) | entry rules in the reducer; API and network errors shown in the display |
-| Responsive design                              | CSS grid keypad, fills a phone viewport, max-width 400px on desktop     |
-| Endpoints for operations                       | `POST /api/v1/calculate`, `GET /api/v1/operations`, `GET /healthz`      |
-| Validate input, division by zero, invalid data | request decoding + `calc` errors mapped to 400/422                      |
-| JSON results                                   | every response, including errors, is JSON                               |
-| Unit tests, both layers                        | Go `testing` + `httptest`; Vitest + Testing Library                     |
-| Coverage report                                | `make coverage`, README table, CI artifacts                             |
-| Dockerfile for full stack                      | two Dockerfiles + `docker-compose.yml`                                  |
-| Prompts shared                                 | `PROMPTS.md`, append-only, verbatim                                     |
+| Requirement                                    | Where it is met                                                                                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add, subtract, multiply, divide                | `calc` package; keypad `+ − × ÷`                                                                                                                  |
+| Exponentiation, square root, percentage        | `calc` package; keypad `xʸ √ %`                                                                                                                   |
+| Intuitive UI                                   | keypad that builds the expression in large type and evaluates on `=`, keyboard shortcuts, expression line above the display, history, five themes |
+| Input validation and error handling (frontend) | entry rules in the reducer; API and network errors shown in the display                                                                           |
+| Responsive design                              | CSS grid keypad from 320px up; measured display sizing; pills and a side-by-side layout on short and landscape phones; max-width 400px on desktop |
+| Endpoints for operations                       | `POST /api/v1/evaluate` for a whole expression, `POST /api/v1/calculate` for one operation, `GET /api/v1/operations`, `GET /healthz`              |
+| Validate input, division by zero, invalid data | request decoding, `expr` syntax checks and `calc` errors mapped to 400/422                                                                        |
+| JSON results                                   | every response, including errors, is JSON                                                                                                         |
+| Unit tests, both layers                        | Go `testing` + `httptest`; Vitest + Testing Library                                                                                               |
+| End-to-end tests                               | `e2e/` Playwright scenarios against the compose stack (`make e2e`), a CI job the deploy depends on                                                |
+| Mutation testing                               | `make mutate` on `internal/calc`, every mutant killed, its own CI job the deploy depends on                                                       |
+| Coverage report                                | `make coverage`, README table, CI artifacts, 90% gates in both jobs                                                                               |
+| Dockerfile for full stack                      | two Dockerfiles + `docker-compose.yml`                                                                                                            |
+| Prompts shared                                 | `PROMPTS.md`, append-only, verbatim                                                                                                               |
 
 ## 3. Architecture
 

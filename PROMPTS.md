@@ -358,3 +358,9 @@ Three fixes, one commit:
 ```text
 README: one source for coverage numbers (the table); rewrite "What would come next" as six next steps, each with what it requires: decimal arithmetic, server-side history behind auth, share links, shared live session, Chrome extension (needs the CORS decision 5 left out), request ids and metrics; fix stale wording (five themes, make setup, history dropdown, dated note in decision 1); "tests written from the plan's test tables, committed with the code"; add a short "deliberately left as is" list (repeat =, operator replacement, Delete, no paste, Content-Type not checked, no CORS); intro down to five bullets with Quick start right after it.
 ```
+
+## 37. DESIGN.md requirements mapping
+
+```text
+docs/DESIGN.md section 2 predates the evaluation model: add /evaluate, drop "iOS-style", add e2e and mutation rows.
+```
