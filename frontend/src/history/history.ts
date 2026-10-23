@@ -26,15 +26,53 @@ export function readHistory(): HistoryEntry[] {
   }
 }
 
-export function writeHistory(entries: readonly HistoryEntry[]): void {
+/** True once stored; false when storage is unavailable (private mode, blocked, full). */
+export function writeHistory(entries: readonly HistoryEntry[]): boolean {
   try {
     localStorage.setItem(
       HISTORY_STORAGE_KEY,
       JSON.stringify(entries.slice(0, HISTORY_LIMIT)),
     )
+    return true
   } catch {
-    // Storage unavailable (private mode, blocked, full): history lasts for this page only.
+    return false
   }
+}
+
+/**
+ * The union of several lists, newest first and capped, with an entry that
+ * appears in more than one list kept once. A tab merges what it is about to
+ * save with what the other tabs saved, so a write never drops their entries.
+ */
+export function mergeHistory(
+  ...lists: readonly (readonly HistoryEntry[])[]
+): HistoryEntry[] {
+  const seen = new Set<string>()
+  const merged: HistoryEntry[] = []
+  for (const entry of lists.flat()) {
+    const id = `${entry.at}\u0000${entry.expression}\u0000${entry.result}`
+    if (seen.has(id)) continue
+    seen.add(id)
+    merged.push(entry)
+  }
+  return merged.sort((a, b) => b.at - a.at).slice(0, HISTORY_LIMIT)
+}
+
+/**
+ * Calls `listener` with the stored history whenever another tab changes it:
+ * the browser fires `storage` in every tab except the one that wrote, with a
+ * null key when the whole storage was cleared. Returns a function that
+ * stops listening.
+ */
+export function subscribeHistory(
+  listener: (entries: HistoryEntry[]) => void,
+): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === HISTORY_STORAGE_KEY)
+      listener(readHistory())
+  }
+  window.addEventListener('storage', onStorage)
+  return () => window.removeEventListener('storage', onStorage)
 }
 
 type StoredEntry = Omit<HistoryEntry, 'value'> & { value?: unknown }

@@ -323,13 +323,17 @@ Write one report at /Users/zgrgrcn/career/resume/2026/sezzle/blackbox-report-202
 ## 31. Fixes next, one per prompt
 
 ```text
-A review pass and an independent black-box test against the live site are done; the fixes come next, one task per prompt. Keep logging every prompt in PROMPTS.md as before, this one included. One commit per task, tests green locally before each commit, then push straight to main: CI runs the full suite and gates the deploy, so check the run after each push and fix forward if a job fails.
+Review and an independent black-box test are done; fixes next, one per prompt. Keep logging every prompt in PROMPTS.md, this one included. One commit per task, tests green, push to main after each; CI gates the deploy, fix forward if a job fails.
 ```
 
 ## 32. Display clips long results
 
 ```text
-The main display clips valid results from the left. 1 ÷ 3 = shows "…333333": the result is 0.333333333333, 14 characters, the display picks the "small" size (2.5rem) for 10–14 characters, and at that size the text is wider than the display from 12 characters on a 375px phone and from 13 on desktop; the rtl ellipsis then hides the leading "0.". Every decimal result rounded to 12 significant digits hits this, on every width.
+1 ÷ 3 = shows "…333333": the leading "0." is clipped. Any 12–14 character result does this. No result the formatter can produce may be clipped, at 320px and up. Keep the fixed line heights. Test the boundaries.
+```
 
-Fix: the display text must never be clipped for any result the formatter can produce, at 320px and up. Pick the size from the measured width, not from the character count, or lower the buckets so the longest "small" text fits at 320px with the 15-digit case still readable. Keep the two lines at fixed heights. Unit-test the bucket boundaries and add a component test that 0.333333333333 is fully visible.
+## 33. History across tabs
+
+```text
+History is last-writer-wins across tabs: a calculation in tab B drops what tab A saved. Merge on write and pick up changes from other tabs. Unit-test two writers.
 ```

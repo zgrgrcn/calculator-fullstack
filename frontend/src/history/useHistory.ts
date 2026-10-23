@@ -1,22 +1,34 @@
 import { useCallback, useEffect, useState } from 'react'
-import { HISTORY_LIMIT, readHistory, writeHistory } from './history'
+import {
+  mergeHistory,
+  readHistory,
+  subscribeHistory,
+  writeHistory,
+} from './history'
 import type { HistoryEntry } from './history'
 
-/** Finished evaluations, newest first, kept in localStorage. */
+/**
+ * Finished evaluations, newest first, kept in localStorage and shared with
+ * the other tabs: a write merges the new entry into what is stored at that
+ * moment, so nothing another tab saved is dropped, and their writes arrive
+ * through the storage event. Without storage the list lasts for this page
+ * only.
+ */
 export function useHistory() {
   const [entries, setEntries] = useState<HistoryEntry[]>(readHistory)
 
-  useEffect(() => {
-    writeHistory(entries)
-  }, [entries])
+  useEffect(() => subscribeHistory(setEntries), [])
 
   const add = useCallback((entry: Omit<HistoryEntry, 'at'>) => {
-    setEntries((previous) =>
-      [{ ...entry, at: Date.now() }, ...previous].slice(0, HISTORY_LIMIT),
-    )
+    const stamped = { ...entry, at: Date.now() }
+    // Storage, not this tab's list, is the truth: a clear in another tab stays cleared.
+    const merged = mergeHistory([stamped], readHistory())
+    if (writeHistory(merged)) setEntries(merged)
+    else setEntries((previous) => mergeHistory([stamped], previous))
   }, [])
 
   const clear = useCallback(() => {
+    writeHistory([])
     setEntries([])
   }, [])
 

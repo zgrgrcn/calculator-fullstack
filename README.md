@@ -23,7 +23,9 @@ available on `/api/v1/calculate`.
 - The main line picks the largest of seven font sizes at which the whole text
   fits, measured in the browser rather than guessed from a character count,
   so no result is ever clipped at 320px and up
-- History: every finished evaluation is kept in localStorage; the clock
+- History: every finished evaluation is kept in localStorage and shared
+  across tabs (a write merges with what other tabs saved, and their changes
+  show up without a reload); the clock
   icon at the top-left of the panel drops down a list of `expression =
 result`, newest first; clicking an entry starts a new expression from
   that result, a trash can clears the list, and Escape or a click outside closes it

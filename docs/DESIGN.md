@@ -894,3 +894,28 @@ an over-long expression falls back to nano and clips, that the error message
 shrinks only as far as it must, and that a resize is measured again; three
 Playwright tests check the real layout at a 320px viewport, one of them in the
 monospace theme.
+
+## 23. History shared across tabs (2026-10-23)
+
+`useHistory` wrote its whole in-memory list to localStorage on every change,
+so the last tab to finish a calculation overwrote whatever the others had
+saved since it loaded, and a tab never saw the others' entries until a reload.
+
+Now storage is the truth and each tab's list is a cache of it. `add` reads
+the stored list at that moment, merges the new entry into it with
+`mergeHistory` (union, newest first by `at`, an entry present in both kept
+once, capped at 50), writes the result and shows it; it does not merge the
+tab's own stale list, so a clear in another tab stays cleared. `clear` writes
+an empty list. `subscribeHistory` listens for the browser's `storage` event,
+which fires in every tab except the writer (with a null key when storage was
+wiped), and replaces the list with what is stored. The hook subscribes on
+mount and unsubscribes on unmount. When storage cannot be written (private
+mode, blocked, full) `writeHistory` returns false and the entry is merged into
+the tab's own list instead, so history still lasts for the page.
+
+`useHistory.test.ts` mounts two hooks on the shared jsdom storage as two tabs
+and delivers the storage event by hand, since one window never fires it for
+itself: both writers' entries survive, a tab picks up the other's write, a
+clear propagates and is not undone by the next write, writes from both tabs
+order newest first under the cap, other keys are ignored, and the no-storage
+fallback keeps the page's list.
