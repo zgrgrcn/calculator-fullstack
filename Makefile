@@ -1,4 +1,4 @@
-.PHONY: help setup backend frontend test test-backend test-frontend coverage lint mutate e2e docker-up docker-down
+.PHONY: help setup backend frontend test test-backend test-frontend coverage lint mutate e2e media docker-up docker-down
 
 help:            ## list targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -23,6 +23,10 @@ lint:            ## formatting and static checks
 e2e:             ## build the stack, run Playwright against it, tear it down
 	docker compose up --build -d --wait
 	cd e2e && npm test; status=$$?; cd .. && docker compose down; exit $$status
+media:           ## record docs/media/demo.gif and docs/media/themes.png against the compose stack (needs ffmpeg)
+	docker compose up --build -d --wait
+	cd e2e && node demo/record.js; status=$$?; cd .. && docker compose down; exit $$status
+
 mutate:          ## mutation-test internal/calc; fails if a mutant survives
 	cd backend && go run ./tools/mutate ./internal/calc
 docker-up:       ## build and start the stack on http://localhost:3000

@@ -376,3 +376,65 @@ Playwright: pin the theme; add iPhone SE, 320×568 and 667×375 projects; a size
 ```text
 Link the latest CI job summary from Testing and commit go tool cover -func output as docs/coverage.txt via make coverage.
 ```
+
+## 40. Demo media and a shorter README
+
+```text
+Add a demo GIF to the README, right under the Live demo line. Record it with Playwright video against the compose stack (Desktop Chrome, about 640px wide, 10–12 seconds): type 2 + 3 × 4 =, continue with ÷ 7 =, open the history, pick two other themes. Convert with ffmpeg to a palette GIF at 10 fps, under 2 MB, saved as docs/media/demo.gif, and add a make target that regenerates it. Below the GIF add one static image, docs/media/themes.png: the five themes side by side at 375×667 showing 1 ÷ 3 =, under 500 KB. 
+The README is 458 lines; a reviewer reads it in ten minutes. Move "Interface details", the per-theme list and the per-file e2e scenario list into docs/DESIGN.md (or a new docs/UI.md) and leave a three-line summary of each in the README with a link. Keep Quick start, API, Design decisions, Testing and AI usage as they are. Target under 330 lines, nothing lost, every link still resolves.
+Do not miss the main requirements: `
+Objective
+Build a full-stack calculator application with a React frontend and a backend microservice. The frontend should consume the backend API to perform basic and advanced arithmetic operations. Focus on clean design, maintainable code, and testable architecture.Requirements
+Functional
+Operations:
+
+* Addition, Subtraction, Multiplication, Division
+* Optional: Exponentiation, Square Root, Percentage
+
+Frontend (React):
+
+* Intuitive UI for entering input and displaying results
+* Input validation and error handling
+* Responsive design (basic mobile support)
+
+Backend (REST API):
+
+* Expose endpoints for calculator operations
+* Validate input and handle edge cases (division by zero, invalid data)
+* Return results in JSON format
+
+Non-Functional
+
+* Clean, readable, and idiomatic code (frontend and backend)
+* Unit tests covering key functionality for both layers
+* Documentation: setup instructions, API usage, and design rationale
+* Optional: Dockerfile for full-stack deployment
+
+Constraints
+
+* Frontend: React (TypeScript preferred)
+* Backend: Go is perferred
+
+Deliverables
+
+1. Git repository with frontend and backend code
+2. README with setup instructions, API examples, and design decisions
+3. Unit tests and coverage report
+4. Optional: Dockerfile to run frontend + backend together
+
+Instructions
+
+1. Use any AI tooling you would like
+2. Spend ~2–4 hours on this assignment. Prioritize correctness, clarity, and maintainability over extra features.
+3. Push your solution to GitHub, GitLab, or another Git repository.
+4. Share the repository link with us for evaluation.
+5. Share any prompts that you used in your work
+6. Make sure your README includes:
+   * Setup instructions
+   * How to run the frontend and backend
+   * Examples of API calls (if using REST)
+   * Design decisions or assumptions
+`
+
+One commit.
+```

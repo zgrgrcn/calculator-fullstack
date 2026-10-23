@@ -1016,3 +1016,88 @@ shrinks before anything scrolls; windows at least 600px wide and at most
 695px tall use the same compact keys as short phones; and the 60px bottom
 reservation for the fixed row applies up to 747px wide, below which the swatch
 row can sit under the 400px column. 1280×800 and 375×667 are unchanged.
+
+## 27. Deployment as built (2026-10-23)
+
+Moved from the README's Deployment section, which keeps a summary.
+
+The live demo runs the compose stack on a self-hosted Coolify server as a
+Docker Compose application built from this repository's `main` branch, with
+the domain attached to the `frontend` service. The backend is reachable only
+inside the compose network.
+
+Deploys are gated by CI: the `deploy` job in
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs after the
+backend, frontend, e2e and mutate jobs succeed on a push to `main` and calls
+the Coolify deploy webhook. It needs two repository secrets, `COOLIFY_TOKEN`
+(an API token with only the `deploy` ability) and `COOLIFY_WEBHOOK_URL`
+(`https://<coolify>/api/v1/deploy?uuid=<app uuid>&force=false`), set with
+`gh secret set`. While either is missing the job skips with a notice, so the
+workflow stays green on forks.
+
+Both containers define healthchecks and memory limits (128 MB backend, 64 MB
+frontend); Coolify uses the compose healthchecks as-is. First deployed on
+2026-10-21; every push to `main` that passes CI redeploys it.
+[`deploy/coolify-create.sh`](../deploy/coolify-create.sh) creates the project
+and the compose application through the Coolify API (idempotent; needs a
+token with the root ability in `~/.config/coolify/token`) and prints the
+webhook URL for the CI secret.
+
+## 28. Next steps (2026-10-23)
+
+Moved from the README's "What would come next", which keeps the list.
+
+Six steps, each with what it requires:
+
+1. **Decimal arithmetic** for exact money-style results. Requires a decimal
+   type in `calc` (`math/big.Rat` or scaled integers, to stay on the standard
+   library), numbers as strings on the wire because JSON numbers are doubles,
+   the keypad's entry rules and the formatter working on strings, and a
+   rounding rule per operation with its own test table.
+2. **Server-side history behind authentication.** Requires a user identity
+   (sessions or tokens), a store with migrations, `/api/v1/history` endpoints
+   scoped per user with deletion, and a merge of the local list on first
+   sign-in, which the hook's merge-on-write already shapes.
+3. **Share links.** Requires a URL form of an expression (the token list the
+   reducer already produces) and a route that loads it and validates it the
+   way `/evaluate` does; a stored short link would add an endpoint, expiry
+   and abuse limits.
+4. **Shared live session.** Requires a WebSocket or SSE channel, session ids,
+   one rule for concurrent presses (a single driver, or applying the pure
+   reducer's actions in the same order on every client) and reconnection;
+   the reducer's state is plain data, so it travels as it is.
+5. **Chrome extension.** Requires the CORS middleware that decision 5 left
+   out, with an allowlist of extension origins, the API published outside the
+   compose network, a manifest with host permissions, and a popup build of
+   the React app.
+6. **Request ids and metrics.** Requires a middleware that accepts or assigns
+   `X-Request-Id`, echoes it and puts it in every `slog` line, a `/metrics`
+   endpoint (counters and latency histograms on the standard library, or
+   `expvar`) kept off the public nginx route, and alerts on the error rate.
+
+## 29. Repository layout as built (2026-10-23)
+
+Section 4 is the layout the spec planned; this is the tree as it stands, moved
+from the README's Project structure section, which keeps a one-paragraph shape.
+
+```
+backend/
+  cmd/server/          main: config from env, timeouts, graceful shutdown, -healthcheck
+  internal/calc/       pure arithmetic: operation registry, Calculate, sentinel errors
+  internal/expr/       token-list evaluation with precedence, built on calc
+  internal/api/        HTTP handler, JSON decoding, error mapping, middleware
+  tools/mutate/        mutation tester for internal/calc (make mutate)
+frontend/
+  src/api/             typed client: calculate(), operations(), ApiError, NetworkError
+  src/calculator/      reducer (pure state machine), format, hooks
+  src/components/      Calculator, Display and its measured size buckets, Keypad, Key, key layout
+  src/theme/           theme names, persistence, picker
+  src/history/         history storage shared across tabs, hook, dropdown
+  src/tooltip/         tooltip controller for hover and keyboard focus
+  nginx.conf           static files + /api proxy for the container
+e2e/                   Playwright scenarios against the compose stack (make e2e)
+docker-compose.yml     deploy-ready stack; docker-compose.override.yml adds local ports
+.github/workflows/     CI: test, build, deploy
+docs/                  DESIGN.md (spec), UI.md (interface, themes, e2e list), PLAN.md, coverage.txt, media/
+PROMPTS.md             every prompt used, verbatim
+```
