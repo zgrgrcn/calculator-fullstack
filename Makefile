@@ -14,8 +14,8 @@ test-backend:
 	cd backend && go vet ./... && go test -race -cover ./...
 test-frontend:
 	cd frontend && npm run typecheck && npm run lint && npm test
-coverage:        ## write backend/coverage.html and frontend/coverage/
-	cd backend && go test -race -covermode=atomic -coverprofile=coverage.out ./cmd/... ./internal/... && go tool cover -html=coverage.out -o coverage.html && go tool cover -func=coverage.out | tail -1
+coverage:        ## write backend/coverage.html, docs/coverage.txt (go tool cover -func) and frontend/coverage/
+	cd backend && go test -race -covermode=atomic -coverprofile=coverage.out ./cmd/... ./internal/... && go tool cover -html=coverage.out -o coverage.html && go tool cover -func=coverage.out > ../docs/coverage.txt && tail -1 ../docs/coverage.txt
 	cd frontend && npm run test:coverage
 lint:            ## formatting and static checks
 	cd backend && test -z "$$(gofmt -l .)" && go vet ./...

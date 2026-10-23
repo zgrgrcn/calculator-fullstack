@@ -279,7 +279,7 @@ The full design is in [docs/DESIGN.md](docs/DESIGN.md) and the task plan in
 
 ```bash
 make test       # go vet + go test -race, then typecheck + lint + vitest
-make coverage   # backend/coverage.html and frontend/coverage/index.html
+make coverage   # backend/coverage.html, docs/coverage.txt and frontend/coverage/index.html
 make e2e        # compose stack up, Playwright against it, stack down
 make mutate     # mutation test internal/calc; fails if a mutant survives
 ```
@@ -304,9 +304,13 @@ pending, operations handshake, Retry and the history dropdown).
 CI fails when coverage drops below 90%: vitest's own thresholds for lines,
 statements, functions and branches fail `npm run test:coverage`, and the
 backend job parses `go tool cover -func` and fails under 90% statements.
-Both percentages are printed in the job summary and the reports are
-uploaded as artifacts. This table is the one place the numbers live; measured
-on 2026-10-23 with `make coverage`:
+Both percentages are printed in the job summary of [the latest run on
+`main`](https://github.com/zgrgrcn/calculator-fullstack/actions/workflows/ci.yml?query=branch%3Amain)
+(open the newest run; the backend and frontend jobs each print theirs), and
+the reports are uploaded as artifacts. `make coverage` also writes the
+per-function Go coverage, `go tool cover -func`, to
+[docs/coverage.txt](docs/coverage.txt), which is committed. This table is the
+one place the numbers live; measured on 2026-10-23 with `make coverage`:
 
 | Layer              | Statements | Lines | Notes                                                                                       |
 | ------------------ | ---------- | ----- | ------------------------------------------------------------------------------------------- |
